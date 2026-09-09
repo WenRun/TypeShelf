@@ -565,6 +565,92 @@ RunFonts/
 
 ---
 
+
+---
+
+### Q17: 如何将本地 Fork 修改的代码构建为 Docker 镜像并部署到 NAS / 服务器？
+**答**：
+用户在将代码 Fork 至自己账号（例如 `WenRun/TypeShelf`）并本地开发完成后，将其重新发布并运行在 NAS / Linux 服务器的 Docker 容器中，有三种标准部署方案：
+
+#### 【方案一（首选推荐）】：通过 GitHub Actions 自动云端构建并发布至 GHCR
+这是最省心、最标准且适合长期维护的方案，全程自动化，NAS 端只需要拉取镜像即可：
+1. **推送本地代码到 GitHub 仓库**：
+   在本地仓库目录（`E:\workspace\2026\TypeShelf`）执行：
+   ```bash
+   git push origin main
+   ```
+2. **GitHub Actions 自动构建多架构镜像**：
+   项目内置的 `.github/workflows/docker.yml` 监听 `main` 分支推送，会自动触发 GitHub Actions 云端构建，利用 Buildx 编译出兼顾 `linux/amd64` 与 `linux/arm64` 的双架构镜像，并自动发布到您个人账号下的 GHCR (`ghcr.io/wenrun/typeshelf:latest`)。
+3. **将 GitHub Package 设为公开（Public，关键）**：
+   - 首次构建完成后，进入 GitHub 个人主页 -> **Packages**；
+   - 找到 `typeshelf` (或关联的仓库名)，点击 **Package settings**；
+   - 滚动到底部 **Danger Zone**，点击 **Change package visibility**，将其改为 **Public**（公开），这样您的 NAS 或服务器在没有登录 GitHub Token 的情况下也可直接免密拉取。
+4. **更新服务器/NAS 的 `docker-compose.yml`**：
+   只需将原有官方镜像名替换为您的专属镜像：
+   ```yaml
+   version: "3.8"
+
+   services:
+     typeshelf:
+       image: ghcr.io/wenrun/typeshelf:latest   # 替换为您自己的 GHCR 镜像（注意全小写）
+       container_name: typeshelf
+       restart: unless-stopped
+       ports:
+         - "8090:5000"
+       environment:
+         NODE_ENV: production
+         PORT: 5000
+         DATABASE_URL: postgres://dummy:dummy@127.0.0.1:5432/dummy
+       volumes:
+         - /vol1/1000/fonts/fonts:/app/fonts   # 挂载已有字体目录（保持不变）
+         - /vol1/1000/fonts/data:/app/data     # 挂载已有数据目录（保持不变，历史打标与设置自动继承）
+   ```
+5. **在 NAS / 服务器上重启容器**：
+   ```bash
+   docker compose pull
+   docker compose up -d
+   ```
+
+---
+
+#### 【方案二】：直接在 NAS / 服务器终端拉取源码并本地构建
+若不想公开发布镜像或网络访问 GitHub Packages 受限，可直接在宿主机构建：
+1. **在 NAS 上通过 Git 克隆您的仓库**：
+   ```bash
+   cd /vol1/1000/
+   git clone https://github.com/WenRun/TypeShelf.git runfonts-src
+   cd runfonts-src
+   ```
+2. **本地执行 Docker 构建**：
+   ```bash
+   docker build -f dockerfile -t runfonts:mybuild .
+   ```
+3. **修改 `docker-compose.yml` 中的镜像**：
+   ```yaml
+   image: runfonts:mybuild
+   ```
+4. **重新启动**：
+   ```bash
+   docker compose up -d
+   ```
+
+---
+
+#### 【方案三】：在 Windows 本地打包镜像并离线导入 NAS
+如果 NAS 性能较弱或无法联网拉取：
+1. **在本地电脑（已安装 Docker Desktop）构建**：
+   ```bash
+   cd E:\workspace\2026\TypeShelf
+   docker build -f dockerfile -t runfonts:local .
+   docker save runfonts:local -o runfonts.tar
+   ```
+2. **将 `runfonts.tar` 上传到 NAS 任意目录**；
+3. **在 NAS SSH 终端执行导入**：
+   ```bash
+   docker load -i runfonts.tar
+   ```
+4. **在 `docker-compose.yml` 中指定 `image: runfonts:local` 并启动容器**。
+
 ## 五、文档持续维护与演进规划
 
 ### 5.1 增补规范
