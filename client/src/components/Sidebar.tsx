@@ -56,9 +56,11 @@ export function Sidebar() {
   return (
     <aside className="w-64 h-screen border-r border-border bg-card flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
       <div className="p-6">
-        <h1 className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          TypeShelf
-        </h1>
+        <Link href="/" className="block">
+          <h1 className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent hover:opacity-90 transition-opacity">
+            {t("common.appName")}
+          </h1>
+        </Link>
       </div>
 
       <nav className="flex-1 px-4 space-y-8">

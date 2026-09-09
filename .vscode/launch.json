@@ -1,8 +1,8 @@
-﻿{
+{
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug TypeShelf (Server & Vite)",
+      "name": "Debug RunFonts (Server & Vite)",
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "npx",

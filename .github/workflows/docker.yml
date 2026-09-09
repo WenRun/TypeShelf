@@ -1,4 +1,4 @@
-name: Build and Push TypeShelf Image
+name: Build and Push RunFonts Image
 
 on:
   push:

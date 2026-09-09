@@ -1,8 +1,8 @@
-# TypeShelf - Self-Hosted Font Manager
+# RunFonts - Self-Hosted Font Manager
 
 ## Overview
 
-TypeShelf is a self-hosted font library browser web application designed for managing local font collections. It provides a modern interface for browsing, organizing, and previewing fonts stored in local directories. The app features categories (folder-based), favorites, collections/projects, search with filters, and detailed font previews with code snippets for various platforms.
+RunFonts is a self-hosted font library browser web application designed for managing local font collections. It provides a modern interface for browsing, organizing, and previewing fonts stored in local directories. The app features categories (folder-based), favorites, collections/projects, search with filters, and detailed font previews with code snippets for various platforms.
 
 ## User Preferences
 

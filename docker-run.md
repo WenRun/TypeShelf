@@ -1,22 +1,22 @@
-## Run TypeShelf with Docker (quick test)
+## Run RunFonts with Docker (quick test)
 
 ### 1) Build
-docker build -t typeshelf:local .
+docker build -t runfonts:local .
 
 ### 2) Run (needs DATABASE_URL)
-docker network create typeshelf-net || true
+docker network create runfonts-net || true
 
-docker run -d --name typeshelf-db --network typeshelf-net \
-  -e POSTGRES_DB=typeshelf \
+docker run -d --name runfonts-db --network runfonts-net \
+  -e POSTGRES_DB=runfonts \
   -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=typeshelf \
+  -e POSTGRES_PASSWORD=runfonts \
   -p 5432:5432 \
   postgres:16-alpine
 
-docker run -d --name typeshelf --network typeshelf-net \
+docker run -d --name runfonts --network runfonts-net \
   -e PORT=5000 \
   -e NODE_ENV=production \
-  -e DATABASE_URL=postgres://postgres:typeshelf@typeshelf-db:5432/typeshelf \
+  -e DATABASE_URL=postgres://postgres:runfonts@runfonts-db:5432/runfonts \
   -p 5000:5000 \
   -v $(pwd)/fonts:/app/fonts \
-  typeshelf:local
+  runfonts:local

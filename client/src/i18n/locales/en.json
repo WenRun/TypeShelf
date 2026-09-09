@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "TypeShelf",
+    "appName": "RunFonts",
     "searchPlaceholder": "Search fonts...",
     "previewDefault": "The quick brown fox jumps over the lazy dog",
     "previewPlaceholder": "Type something to preview...",
@@ -161,7 +161,7 @@
     "exporting": "Exporting database...",
     "exportingDesc": "Backup file is being generated.",
     "exportSuccess": "Database exported",
-    "exportSuccessDesc": "typeshelf_backup.json downloaded.",
+    "exportSuccessDesc": "runfonts_backup.json downloaded.",
     "exportFailed": "Export failed",
     "aiTitle": "AI Smart Analysis Configuration",
     "aiDesc": "Configure OpenAI, DeepSeek, Qwen or compatible APIs for font design style analysis and smart tagging.",

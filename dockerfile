@@ -11,7 +11,7 @@ RUN npm ci
 # Copy source
 COPY . .
 
-# Build TypeShelf (creates dist/index.cjs)
+# Build RunFonts (creates dist/index.cjs)
 RUN npm run build
 
 

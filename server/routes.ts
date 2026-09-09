@@ -297,7 +297,7 @@ export async function registerRoutes(
   app.get("/api/backup/export", async (_req, res) => {
     try {
       const data = await storage.getAllDataForExport();
-      res.setHeader("Content-Disposition", "attachment; filename=\"typeshelf_backup.json\"");
+      res.setHeader("Content-Disposition", "attachment; filename=\"runfonts_backup.json\"");
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.send(JSON.stringify(data, null, 2));
     } catch (err: any) {

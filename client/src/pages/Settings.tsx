@@ -212,7 +212,7 @@ export default function Settings() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "typeshelf_backup.json";
+        a.download = "runfonts_backup.json";
         a.click();
         window.URL.revokeObjectURL(url);
       }

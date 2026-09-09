@@ -1,4 +1,4 @@
-# TypeShelf 字体管理工具
+# RunFonts 字体管理工具
 
 <p align="center">
   <b>一款轻量、开箱即用的自托管（Self-Hosted）字体管理与 Web 预览系统</b>
@@ -15,7 +15,7 @@
 
 ## 📖 项目简介
 
-**TypeShelf** 是一个专为设计师、独立开发者及字体爱好者打造的本地/私有化自托管字体管理系统。
+**RunFonts** 是一个专为设计师、独立开发者及字体爱好者打造的本地/私有化自托管字体管理系统。
 
 它可以自动递归扫描指定文件夹中的字体文件，解析字体的底层元数据（字族名、字重、风格、版本等），并提供美观现代的 Web 交互界面。你可以直接在浏览器中实时输入任意文本（支持中文及各类语言）对比预览字体渲染效果、分类归档、建立收藏集。
 
@@ -93,7 +93,7 @@ npm run dev
 项目中已预置 `.vscode/launch.json` 调试配置：
 1. 使用 VS Code 打开本项目根目录。
 2. 在服务端代码（例如 `server/routes.ts`、`server/scanner.ts`、`server/storage.ts`）中设置断点。
-3. 按键盘快捷键 **`F5`**，选择 **`Debug TypeShelf (Server & Vite)`** 即可开启单步断点调试。
+3. 按键盘快捷键 **`F5`**，选择 **`Debug RunFonts (Server & Vite)`** 即可开启单步断点调试。
 
 ### 5. 生产环境构建与启动
 ```bash
@@ -114,29 +114,29 @@ npm start
 
 #### 1. 构建镜像
 ```bash
-docker build -t typeshelf:local .
+docker build -t runfonts:local .
 ```
 
 #### 2. 运行容器
 ```bash
 docker run -d \
-  --name typeshelf \
+  --name runfonts \
   -p 5000:5000 \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/fonts:/app/fonts \
   --restart unless-stopped \
-  typeshelf:local
+  runfonts:local
 ```
 
 > **Windows PowerShell 命令示例**：
 > ```powershell
 > docker run -d `
->   --name typeshelf `
+>   --name runfonts `
 >   -p 5000:5000 `
 >   -v ${PWD}/data:/app/data `
 >   -v ${PWD}/fonts:/app/fonts `
 >   --restart unless-stopped `
->   typeshelf:local
+>   runfonts:local
 > ```
 
 ---
@@ -149,10 +149,10 @@ docker run -d \
 version: '3.8'
 
 services:
-  typeshelf:
-    image: typeshelf:local
+  runfonts:
+    image: runfonts:local
     build: .
-    container_name: typeshelf
+    container_name: runfonts
     restart: unless-stopped
     ports:
       - "5000:5000"
@@ -177,10 +177,10 @@ docker compose up -d
 
 ### 方案三：Umbrel 个人私有云安装
 
-TypeShelf 支持通过 Umbrel 社区应用商店一键安装：
+RunFonts 支持通过 Umbrel 社区应用商店一键安装：
 1. 打开 Umbrel 后台：`App Store` → 右上角菜单 `...` → `Community App Stores`。
 2. 添加社区应用源：`https://github.com/hashmoody/umbrel-app-store`。
-3. 在应用列表中找到 **TypeShelf**，点击 **Install** 即可完成部署。
+3. 在应用列表中找到 **RunFonts**，点击 **Install** 即可完成部署。
 
 ---
 
@@ -214,7 +214,7 @@ TypeShelf 支持通过 Umbrel 社区应用商店一键安装：
 - **原因**：字体文件较多时，Node.js 文件监听工具（Chokidar）耗尽了系统的 `inotify` 监视器上限。
 - **解决方案**：在 Linux 主机上执行以下命令增加系统文件监视器限额：
   ```bash
-  sudo tee /etc/sysctl.d/99-typeshelf-inotify.conf >/dev/null <<'EOF'
+  sudo tee /etc/sysctl.d/99-runfonts-inotify.conf >/dev/null <<'EOF'
   fs.inotify.max_user_watches=2097152
   fs.inotify.max_user_instances=4096
   fs.inotify.max_queued_events=1048576
@@ -231,7 +231,7 @@ TypeShelf 支持通过 Umbrel 社区应用商店一键安装：
 ## 📂 项目工程结构
 
 ```text
-TypeShelf/
+RunFonts/
 ├── client/                 # 前端源码 (React 18 + Tailwind CSS + Vite)
 │   ├── src/
 │   │   ├── components/     # UI 组件 (FontCard, Sidebar, LanguageSwitcher 等通用组件)

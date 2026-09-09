@@ -10,12 +10,15 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const THEME_STORAGE_KEY = "typeshelf_theme";
+export const THEME_STORAGE_KEY = "runfonts_theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem("theme");
+      const stored =
+        localStorage.getItem(THEME_STORAGE_KEY) ||
+        localStorage.getItem("typeshelf_theme") ||
+        localStorage.getItem("theme");
       if (stored === "light" || stored === "dark") {
         return stored;
       }
@@ -31,6 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove("dark");
     }
     localStorage.setItem(THEME_STORAGE_KEY, theme);
+    localStorage.setItem("typeshelf_theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 

@@ -1,8 +1,8 @@
-# TypeShelf 核心技术架构设计与规范标准手册 (TECHNICAL.md)
+# RunFonts 核心技术架构设计与规范标准手册 (TECHNICAL.md)
 
 > **版本**：v1.0.0  
-> **适用项目**：TypeShelf 字体管理系统  
-> **文档目标**：统一记录 TypeShelf 项目的**核心架构设计、关键技术模块实现机制、工程规范标准以及常见问题排查手册（FAQ）**。  
+> **适用项目**：RunFonts 字体管理系统  
+> **文档目标**：统一记录 RunFonts 项目的**核心架构设计、关键技术模块实现机制、工程规范标准以及常见问题排查手册（FAQ）**。  
 > **维护说明**：本文档为全项目的统一技术基准。后续如有新功能演进、架构重构或排查出新问题，均需在本文档对应章节持续补充。
 
 ---
@@ -48,7 +48,7 @@
 ## 一、系统架构总览与设计哲学
 
 ### 1.1 系统定位
-**TypeShelf** 是一款轻量级、开箱即用的私有化/自托管（Self-Hosted）字体管理与 Web 实时排版渲染系统。其设计哲学贯穿以下四项基本原则：
+**RunFonts** 是一款轻量级、开箱即用的私有化/自托管（Self-Hosted）字体管理与 Web 实时排版渲染系统。其设计哲学贯穿以下四项基本原则：
 1. **零外部数据库依赖（No-DB Architecture）**：摒弃繁重的 PostgreSQL / MySQL 数据库，采用基于本地原子写入的结构化 JSON 文件持久化（`data/*.json`）。单容器即可完整启动，数据备份与跨机器迁移仅需复制文件夹。
 2. **海量字体高性能吞吐**：针对 300+ 乃至数千款本地字体，具备毫秒级索引加载、增量去重扫描与流式 Web 字体渲染能力，确保页面不卡顿、浏览器内存不膨胀。
 3. **底层二进制级字体解析**：不依赖操作系统的本地字体注册表，直接解析字体文件的 OpenType/TrueType 内部二进制表（SFNT 表头、`name` 表、`cmap` 表），提取真实准确的字体元数据。
@@ -71,7 +71,7 @@
 ### 1.3 工程目录结构规范
 
 ```text
-TypeShelf/
+RunFonts/
 ├── client/                     # 前端 React 单页应用源码
 │   ├── src/
 │   │   ├── components/         # 通用与业务组件 (Sidebar, FontCard, ui/*)
@@ -259,7 +259,7 @@ TypeShelf/
 ### 2.6 多语言国际化系统设计 (i18n Architecture)
 - **源码定位**：`client/src/i18n/index.ts`、`client/src/i18n/locales/*`、`client/src/components/LanguageSwitcher.tsx`
 - **技术要点**：
-  1. 采用 `i18next` 框架，配置 `LanguageDetector` 优先读取用户在浏览器的首选语言，并在用户手动切换后写入 `localStorage.getItem('typeshelf_language')` 保持长久记忆。
+  1. 采用 `i18next` 框架，配置 `LanguageDetector` 优先读取用户在浏览器的首选语言，并在用户手动切换后写入 `localStorage.getItem('runfonts_language')` 保持长久记忆。
   2. 提供紧凑型 Icon 切换按钮与下拉选择器，实现全界面所有文本（侧边栏、搜索框提示语、详情页元数据、Toast 弹窗）毫秒级无刷新更新。
 
 ### 2.7 全局主题外观系统 (Theme System)
