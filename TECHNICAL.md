@@ -518,6 +518,25 @@ RunFonts/
      - 点击标签胶囊时执行 Toggle 逻辑：若已选中则移除，未选中则追加；
      - 标签全部清空时自动还原根路径，刷新和回退历史无需重新查询。
 
+### Q16: 侧边栏“全部字体”与“我的收藏”实时统计徽标架构设计
+**答**：
+- **设计需求**：
+  1. **全局统一的视觉与对齐规范**：与侧边栏“合集分组”（`col.count`）、“字体目录”（`cat.count`）及“标签分类”（`tag.count`）保持一致，“全部字体”和“我的收藏”尾部也展示对应的数量徽标（如 `全部字体 331`、`我的收藏 2`）；
+  2. **高频操作毫秒级响应**：在字体卡片或详情页中进行收藏/取消收藏、新增字体文件夹重新扫描时，侧边栏数字徽标必须无感实时同步，不可出现页面滞后或必须手动刷新才更新的问题；
+  3. **排版与激活态视觉统一**：采用 `tabular-nums font-mono` 保证数字切换时不引起布局抖动；激活态自动切换为主色调半透明背景高亮 (`bg-primary/20 text-primary font-semibold`)，未激活态保持精致淡雅的弱化风格 (`bg-muted text-muted-foreground`)。
+- **技术实现核心**：
+  1. **聚合统计 API (`/api/stats` 与 `server/storage.ts`)**：
+     - 新增 `storage.getStats()` 方法与通用数据接口 `SystemStats` (`{ totalFonts: number, totalFavorites: number }`)；
+     - 基于内存中已清洗校验的 `fontFiles` 与 `fontFaces` 构建家族全集 `Set<string>`，严格对齐首页去重统计逻辑（计算得出准确的 331 款字体家族）；
+     - 针对收藏项严格过滤 `targetType === 'family'` 且匹配有效字体家族，统计收藏家族总数；
+     - 扩展 `storage.getCategories()`，为每个目录动态附带属于该目录的字体家族数量 `count: number`；
+  2. **前端 React Query 缓存联动 (`client/src/hooks/use-fonts.ts`)**：
+     - 引入 `useStats()` Hook，独立维护 `["/api/stats"]` 查询缓存，具备 5 分钟 staleTime 避免无意义重复请求；
+     - 在 `useToggleFavorite`（收藏切换）和 `useRescanFonts`（重新扫描）的 `onSuccess` 回调中，精准执行 `queryClient.invalidateQueries({ queryKey: ["/api/stats"] })`，触发侧边栏静默增量刷新；
+  3. **组件渲染与布局保护 (`client/src/components/Sidebar.tsx`)**：
+     - 在 `Sidebar` 统一注入 `useStats()`，将 `stats?.totalFonts` 与 `stats?.totalFavorites` 作为 `count` 属性传递给对应的 `NavItem`；
+     - `NavItem` 内置 `tabular-nums`，并配合 `pr-10` 预留操作区（保证与包含删除图标的合集/目录项数字列在同一垂直线严谨对齐）。
+
 ---
 
 ## 五、文档持续维护与演进规划
