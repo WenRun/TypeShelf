@@ -51,6 +51,7 @@ export interface IStorage {
   toggleFavorite(favorite: InsertFavorite): Promise<{ favorite?: Favorite, isFavorite: boolean }>;
 
   createFontFile(file: InsertFontFile): Promise<FontFile>;
+  getFontFiles(categoryId?: string): Promise<FontFile[]>;
   getFontFileByPath(fullPath: string): Promise<FontFile | undefined>;
   getFontFileByUrlKey(urlKey: string): Promise<FontFile | undefined>;
   createFontFace(face: InsertFontFace): Promise<FontFace>;
@@ -214,8 +215,10 @@ export class JsonStorage implements IStorage {
   }
 
   async deleteCategory(id: string): Promise<void> {
+    const fileIdsToDelete = new Set(this.fontFiles.filter(f => f.categoryId === id).map(f => f.id));
     this.categories = this.categories.filter(c => c.id !== id);
     this.fontFiles = this.fontFiles.filter(f => f.categoryId !== id);
+    this.fontFaces = this.fontFaces.filter(f => !fileIdsToDelete.has(f.fontFileId));
     this.save();
   }
 
@@ -347,6 +350,13 @@ export class JsonStorage implements IStorage {
     this.fontFiles.push(created);
     this.save();
     return created;
+  }
+
+  async getFontFiles(categoryId?: string): Promise<FontFile[]> {
+    if (categoryId) {
+      return this.fontFiles.filter(f => f.categoryId === categoryId);
+    }
+    return this.fontFiles;
   }
 
   async getFontFileByPath(fullPath: string): Promise<FontFile | undefined> {

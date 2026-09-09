@@ -19,9 +19,22 @@ export class Scanner {
     console.log("Starting full scan...");
     try {
       const categories = await storage.getCategories();
+      const fontsDir = path.resolve('fonts');
       for (const cat of categories) {
-        if (cat.status === 'ok') {
-            await this.scanCategory(cat.id, cat.path);
+        let targetPath = cat.path;
+
+        // Auto-heal Local Fonts path if configured path does not exist but local fontsDir does
+        if (!fs.existsSync(targetPath) && cat.name === 'Local Fonts' && fs.existsSync(fontsDir)) {
+          console.log(`Auto-repairing Local Fonts path: ${cat.path} -> ${fontsDir}`);
+          targetPath = fontsDir;
+          await storage.updateCategory(cat.id, { path: fontsDir, status: 'ok', lastError: null });
+        }
+
+        if (fs.existsSync(targetPath)) {
+          await this.scanCategory(cat.id, targetPath);
+        } else {
+          console.warn(`Category path missing: ${cat.name} (${targetPath})`);
+          await storage.updateCategory(cat.id, { status: 'missing', lastError: 'Path not found' });
         }
       }
     } finally {
@@ -43,6 +56,19 @@ export class Scanner {
     const files = this.getFilesRecursively(dirPath);
     for (const file of files) {
         await this.processFile(file, categoryId, dirPath);
+    }
+
+    // Clean up stale database records for font files that no longer exist on disk
+    try {
+        const existingFiles = await storage.getFontFiles(categoryId);
+        const currentFilesSet = new Set(files);
+        for (const ef of existingFiles) {
+            if (!currentFilesSet.has(ef.fullPath) || !fs.existsSync(ef.fullPath)) {
+                await storage.deleteFontFile(ef.id);
+            }
+        }
+    } catch (cleanupErr) {
+        console.error('Error cleaning up stale font files:', cleanupErr);
     }
   }
 

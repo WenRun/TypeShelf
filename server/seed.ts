@@ -22,6 +22,17 @@ export async function seed() {
       lastError: null
     });
     console.log("Seeded 'Local Fonts' category");
+  } else {
+    // Auto-heal Local Fonts path if configured path does not exist but local fontsDir does (e.g. data migrated from Windows to Docker)
+    const localCat = cats.find(c => c.name === "Local Fonts");
+    if (localCat && !fs.existsSync(localCat.path) && fs.existsSync(fontsDir)) {
+      console.log(`Auto-repairing Local Fonts path in seed: ${localCat.path} -> ${fontsDir}`);
+      await storage.updateCategory(localCat.id, {
+        path: fontsDir,
+        status: "ok",
+        lastError: null
+      });
+    }
   }
 
   // Check collections

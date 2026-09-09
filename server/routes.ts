@@ -26,7 +26,7 @@ export async function registerRoutes(
     try {
       const input = insertCategorySchema.parse(req.body);
       const cat = await storage.createCategory(input);
-      scanner.scanCategory(cat.id, cat.path); 
+      scanner.scanCategory(cat.id, cat.path).then(() => storage.reload());
       res.status(201).json(cat);
     } catch (err) {
        res.status(400).json({ message: "Invalid input" });
@@ -463,23 +463,61 @@ export async function registerRoutes(
 
   // === Directory Browser ===
   app.get("/api/browse", async (req, res) => {
-    const defaultPath = path.join(process.env.HOME || "/home/umbrel", "umbrel/home");
-    const dirPath = (req.query.path as string) || defaultPath;
-    const resolved = path.resolve(dirPath);
+    let resolved = "";
+    const queryPath = (req.query.path as string)?.trim();
 
-    if (!fs.existsSync(resolved)) {
+    if (queryPath) {
+      const candidate = path.resolve(queryPath);
+      if (fs.existsSync(candidate)) {
+        try {
+          if (fs.statSync(candidate).isDirectory()) {
+            resolved = candidate;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!resolved) {
+      const candidates = [
+        path.resolve("fonts"),
+        "/app/fonts",
+        path.resolve("."),
+        "/app",
+        process.env.HOME || "",
+        process.platform === "win32" ? "C:\\" : "/"
+      ];
+
+      for (const cand of candidates) {
+        if (cand && fs.existsSync(cand)) {
+          try {
+            const stat = fs.statSync(cand);
+            if (stat.isDirectory()) {
+              resolved = cand;
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    if (!resolved || !fs.existsSync(resolved)) {
       return res.status(400).json({ message: "Path does not exist" });
     }
 
     try {
       const entries = fs.readdirSync(resolved, { withFileTypes: true });
       const directories = entries
-        .filter(e => e.isDirectory())
-        .map(e => ({ name: e.name, path: path.join(resolved, e.name) }));
+        .filter(e => e.isDirectory() && !e.name.startsWith("."))
+        .map(e => ({ name: e.name, path: path.join(resolved, e.name) }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const parsed = path.parse(resolved);
+      const isRoot = resolved === parsed.root;
+
       res.json({
         entries: directories,
         currentPath: resolved,
-        parentPath: path.dirname(resolved),
+        parentPath: isRoot ? null : path.dirname(resolved),
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -499,11 +537,11 @@ export async function registerRoutes(
   });
 
   // Start Scanner
-  scanner.scanAll();
+  scanner.scanAll().then(() => storage.reload());
 
   // Watcher Setup
   const categories = await storage.getCategories();
-  const paths = categories.filter(c => c.status === 'ok').map(c => c.path);
+  const paths = categories.filter(c => c.status === 'ok' && fs.existsSync(c.path)).map(c => c.path);
   if (paths.length > 0) {
       const watcher = chokidar.watch(paths, { ignored: /(^|[\/\\])\../, persistent: true });
       watcher.on('add', path => {

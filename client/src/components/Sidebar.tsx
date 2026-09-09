@@ -300,6 +300,15 @@ function CreateCategoryDialog() {
   const { mutate, isPending } = useCreateCategory();
   const { toast } = useToast();
 
+  const handlePathChange = (newPath: string) => {
+    setPath(newPath);
+    if (!name.trim() && newPath) {
+      const cleanPath = newPath.replace(/[\\/]+$/, "");
+      const folderBase = cleanPath.split(/[\\/]/).pop();
+      if (folderBase) setName(folderBase);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !path.trim()) return;
@@ -332,7 +341,7 @@ function CreateCategoryDialog() {
               value={name} 
               onChange={(e) => setName(e.target.value)} 
             />
-            <DirectoryPicker value={path} onChange={setPath} />
+            <DirectoryPicker value={path} onChange={handlePathChange} />
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={isPending || !path.trim()}>
@@ -348,24 +357,26 @@ function CreateCategoryDialog() {
 function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: string) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const defaultHome = "/home/umbrel/umbrel/home";
-  const [browsePath, setBrowsePath] = useState(value || defaultHome);
+  const [browsePath, setBrowsePath] = useState(value || "");
+  const [parentPath, setParentPath] = useState<string | null>(null);
   const [entries, setEntries] = useState<{ name: string; path: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchDir = useCallback(async (dirPath: string) => {
+  const fetchDir = useCallback(async (dirPath?: string) => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/browse?path=${encodeURIComponent(dirPath)}`);
+      const url = dirPath ? `/api/browse?path=${encodeURIComponent(dirPath)}` : "/api/browse";
+      const res = await fetch(url);
       if (!res.ok) {
         const body = await res.json();
         throw new Error(body.message || "Failed to browse");
       }
       const data = await res.json();
-      setEntries(data.entries);
-      setBrowsePath(data.currentPath);
+      setEntries(data.entries || []);
+      setBrowsePath(data.currentPath || dirPath || "");
+      setParentPath(data.parentPath ?? null);
     } catch (e: any) {
       setError(e.message);
       setEntries([]);
@@ -377,7 +388,7 @@ function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
-      fetchDir(value || defaultHome);
+      fetchDir(value.trim() || undefined);
     }
   };
 
@@ -388,18 +399,15 @@ function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: 
 
   return (
     <Popover open={open} onOpenChange={handleOpen}>
-      <div className="flex gap-2 items-start">
-        <div className="flex-1">
-          <div className="flex items-center gap-1 h-10 px-3 rounded-lg border border-input bg-transparent text-sm text-muted-foreground truncate">
-            {value ? (
-              <>
-                <Folder className="w-4 h-4 shrink-0 mr-1" />
-                <span className="truncate">{value}</span>
-              </>
-            ) : (
-              <span className="text-muted-foreground/60">{t("sidebar.noFolderSelected")}</span>
-            )}
-          </div>
+      <div className="flex gap-2 items-center">
+        <div className="relative flex-1">
+          <Folder className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="/app/fonts"
+            className="pl-9 h-10 font-mono text-xs"
+          />
         </div>
         <PopoverTrigger asChild>
           <Button type="button" variant="outline" size="sm" className="shrink-0 h-10">
@@ -408,49 +416,49 @@ function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: 
         </PopoverTrigger>
       </div>
       <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-3 border-b border-border">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-            <Folder className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{browsePath}</span>
+        <div className="p-3 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+            <Folder className="w-3.5 h-3.5 shrink-0 text-primary" />
+            <span className="truncate font-mono font-medium text-foreground">{browsePath || "/"}</span>
           </div>
         </div>
         {error && (
-          <div className="px-3 py-2 text-xs text-destructive">{error}</div>
+          <div className="px-3 py-2 text-xs text-destructive bg-destructive/10 border-b border-border">{error}</div>
         )}
         <ScrollArea className="h-64">
-          <div className="p-1">
-            {browsePath !== "/" && (
+          <div className="p-1 space-y-0.5">
+            {parentPath && parentPath !== browsePath && (
               <button
                 type="button"
-                onClick={() => fetchDir(browsePath.replace(/\/[^/]+$/, "") || "/")}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-secondary transition-colors text-muted-foreground"
+                onClick={() => fetchDir(parentPath)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-secondary transition-colors text-muted-foreground font-mono"
               >
-                <ArrowUp className="w-4 h-4" />
+                <ArrowUp className="w-4 h-4 text-primary" />
                 <span>..</span>
               </button>
             )}
             {loading ? (
-              <div className="px-2 py-4 text-xs text-muted-foreground text-center">{t("common.loading")}</div>
+              <div className="px-2 py-6 text-xs text-muted-foreground text-center">{t("common.loading")}</div>
             ) : entries.length === 0 ? (
-              <div className="px-2 py-4 text-xs text-muted-foreground text-center">{t("sidebar.emptyDirectory")}</div>
+              <div className="px-2 py-6 text-xs text-muted-foreground text-center">{t("sidebar.emptyDirectory")}</div>
             ) : (
               entries.map((entry) => (
                 <button
                   key={entry.path}
                   type="button"
                   onClick={() => fetchDir(entry.path)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-secondary transition-colors"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-secondary transition-colors text-left group"
                 >
-                  <Folder className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="truncate flex-1 text-left">{entry.name}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <Folder className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                  <span className="truncate flex-1 font-mono text-xs">{entry.name}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
                 </button>
               ))
             )}
           </div>
         </ScrollArea>
-        <div className="p-2 border-t border-border flex justify-between items-center">
-          <span className="text-xs text-muted-foreground truncate max-w-[180px]">{browsePath}</span>
+        <div className="p-2 border-t border-border flex justify-between items-center bg-muted/20">
+          <span className="text-xs text-muted-foreground font-mono truncate max-w-[170px]">{browsePath}</span>
           <Button
             type="button"
             size="sm"

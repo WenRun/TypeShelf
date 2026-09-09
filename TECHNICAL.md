@@ -651,6 +651,28 @@ RunFonts/
    ```
 4. **在 `docker-compose.yml` 中指定 `image: runfonts:local` 并启动容器**。
 
+---
+
+### Q18: Docker / 飞牛 fnOS 部署后点击“添加字体文件夹”提示 `Path does not exist` 或“全部字体: 0”？
+- **故障现象**：
+  1. 打开“添加字体文件夹”，点击“浏览路径”弹出 `/home/umbrel/umbrel/home`，提示红色错误 `Path does not exist` 与 `空目录`；
+  2. 左侧边栏“全部字体”、“我的收藏”、“Local Fonts”全部显示为 0，无论如何刷新都不更新。
+- **根因分析**：
+  1. **上游 Umbrel 路径硬编码**：原开源项目 TypeShelf 为 Umbrel 私有云设计，在 `Sidebar.tsx` 和 `routes.ts` (`/api/browse`) 中写死了 `/home/umbrel/umbrel/home`。在通用 Docker 或 Linux / NAS 环境下该路径根本不存在，触发 `400 Path does not exist`；
+  2. **挂载路径不匹配导致永久 Missing 锁死**：若将包含 Windows 本地调试路径（如 `E:\workspace\...\fonts`）的 `data/` 数据卷挂载到 Linux 容器中，容器启动时检查该路径不存在，将分类标记为 `missing`。而在原扫描引擎逻辑中，`scanAll()` 使用了 `if (cat.status === 'ok')` 进行判断，导致标记为 `missing` 的分类被永久跳过，后续无论挂载或 Rescan 都无法自愈；
+  3. **目录输入框不可编辑**：原界面的路径框仅为一个只读展示块，未提供手动输入 Docker 内部挂载路径（如 `/app/fonts`）的能力。
+- **工程化修复与自愈机制**：
+  1. **移除 Umbrel 硬编码，实现候选路径自适应与防崩兜底**：
+     - 后端 `/api/browse` 不再依赖硬编码路径，当传入路径不存在时，自动尝试容器字体标准目录 `['fonts', '/app/fonts', '.', '/app', HOME, '/']`，智能锁定可用目录，避免返回 400 导致弹窗变红报错；
+     - 自动过滤 `.` 开头的隐藏文件，按字母升序排序，并返回标准 `parentPath` 支持向上一级（`..`）平滑浏览。
+  2. **启动与扫描阶段双轨路径自愈 (Self-Healing)**：
+     - 在 `seed.ts` 服务启动时，若检测到 `Local Fonts` 的物理路径在当前系统不存在（例如 Windows 路径移植到了 Linux 容器），但当前环境的 `fonts` 挂载目录（`/app/fonts` 或 `./fonts`）存在，则自动修正数据库中的路径为有效路径并将状态重置为 `ok`；
+     - 在 `scanner.ts` 的 `scanAll()` 扫描阶段中，对每个分类动态通过 `fs.existsSync(targetPath)` 实时核验，一旦挂载目录恢复，即可直接开始扫描并重置状态为 `ok`，不再永久跳过；
+     - 每次扫描结束时同步比对磁盘文件，自动清理已被物理删除或移走的孤儿文件记录和字形记录。
+  3. **目录选择器双模交互 (Direct Input & Browse)**：
+     - 将路径展示框重构为直观可直接键入的 `<Input>` 输入框（默认占位符提示 `/app/fonts`），用户既可直接粘贴或输入 Docker 映射路径，也可点击“浏览”图形化逐级点选；
+     - 选定或键入路径后，若分类名称为空，系统会自动截取路径最后一级作为默认文件夹名称。
+
 ## 五、文档持续维护与演进规划
 
 ### 5.1 增补规范
