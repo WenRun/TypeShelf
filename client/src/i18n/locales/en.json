@@ -92,7 +92,13 @@
     "downloadFamily": "Download Family",
     "addToCollectionBtn": "Add to Collection",
     "previewTextLabel": "Preview Text",
-    "download": "Download"
+    "download": "Download",
+    "fileName": "File Name",
+    "relativePath": "Relative Path",
+    "fileNameCopied": "File name copied",
+    "pathCopied": "Relative path copied",
+    "fontFilesAndPaths": "Files & Paths ({{count}})",
+    "copy": "Copy"
   },
   "settings": {
     "title": "Settings",

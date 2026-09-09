@@ -3,11 +3,11 @@ import { Sidebar } from "@/components/Sidebar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe } from "lucide-react";
+import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useCollections, useAddFontToCollection } from "@/hooks/use-collections";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,49 @@ export default function FontDetail() {
   const { mutate: addToCollection } = useAddFontToCollection();
   const { data: collections } = useCollections();
   const { toast } = useToast();
+
+  const fontFiles = useMemo(() => {
+    if (!font?.faces) return [];
+    const map = new Map<string, FontFile>();
+    font.faces.forEach((f: FontFaceWithFile) => {
+      if (f.file) {
+        const key = f.file.id || f.file.fullPath || f.file.filename;
+        if (!map.has(key)) {
+          map.set(key, f.file);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [font]);
+
+  const copyToClipboard = (text: string, successMsg: string) => {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        toast({ title: successMsg });
+      }).catch(() => {
+        fallbackCopy(text, successMsg);
+      });
+    } else {
+      fallbackCopy(text, successMsg);
+    }
+  };
+
+  const fallbackCopy = (text: string, successMsg: string) => {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      toast({ title: successMsg });
+    } catch {
+      toast({ title: "复制失败", variant: "destructive" });
+    }
+  };
 
   const [customPreview, setCustomPreview] = useState("");
   const previewText = customPreview.trim() ? customPreview : t("fontDetail.previewDefault");
@@ -249,6 +292,87 @@ export default function FontDetail() {
                       {t("fontDetail.totalStyles", { count: font.faces.length })}
                     </span>
                   </div>
+
+                  {fontFiles.length === 1 && (
+                    <>
+                      <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                            {t("fontDetail.fileName")}
+                          </span>
+                          <button
+                            onClick={() => copyToClipboard(fontFiles[0].filename, t("fontDetail.fileNameCopied"))}
+                            className="p-1 -mr-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                            title={t("fontDetail.copy")}
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <span className="text-sm font-medium font-mono break-all select-all block">
+                          {fontFiles[0].filename}
+                        </span>
+                      </div>
+
+                      <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                            {t("fontDetail.relativePath")}
+                          </span>
+                          <button
+                            onClick={() => copyToClipboard((fontFiles[0].relPath || fontFiles[0].filename).replace(/\\/g, '/'), t("fontDetail.pathCopied"))}
+                            className="p-1 -mr-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                            title={t("fontDetail.copy")}
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <span className="text-xs font-medium font-mono text-muted-foreground/90 break-all select-all block leading-relaxed">
+                          {(fontFiles[0].relPath || fontFiles[0].filename).replace(/\\/g, '/')}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  {fontFiles.length > 1 && (
+                    <div className="bg-secondary/20 p-3 rounded-lg border border-border/50 space-y-3">
+                      <span className="block text-[10px] font-bold text-muted-foreground uppercase">
+                        {t("fontDetail.fontFilesAndPaths", { count: fontFiles.length })}
+                      </span>
+                      <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                        {fontFiles.map((file, idx) => {
+                          const normalizedPath = (file.relPath || file.filename).replace(/\\/g, '/');
+                          return (
+                            <div key={file.id || idx} className="p-2.5 rounded-md bg-background/50 border border-border/40 space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-foreground text-xs truncate font-mono" title={file.filename}>
+                                  {file.filename}
+                                </span>
+                                <button
+                                  onClick={() => copyToClipboard(file.filename, t("fontDetail.fileNameCopied"))}
+                                  className="p-1 -mr-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                  title={t("fontDetail.copy")}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-muted-foreground/80 font-mono text-[11px] break-all select-all leading-relaxed" title={normalizedPath}>
+                                  {normalizedPath}
+                                </span>
+                                <button
+                                  onClick={() => copyToClipboard(normalizedPath, t("fontDetail.pathCopied"))}
+                                  className="p-1 -mr-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                  title={t("fontDetail.copy")}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
 

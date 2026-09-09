@@ -92,7 +92,13 @@
     "downloadFamily": "下载整套字体",
     "addToCollectionBtn": "加入合集",
     "previewTextLabel": "预览文本",
-    "download": "下载"
+    "download": "下载",
+    "fileName": "文件名称",
+    "relativePath": "文件相对路径",
+    "fileNameCopied": "文件名称已复制",
+    "pathCopied": "相对路径已复制",
+    "fontFilesAndPaths": "字体文件与路径 ({{count}})",
+    "copy": "复制"
   },
   "settings": {
     "title": "设置",
