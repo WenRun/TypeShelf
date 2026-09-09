@@ -10,7 +10,9 @@ import {
   type CollectionItem, type InsertCollectionItem,
   type Tag, type InsertTag,
   type FontTag, type InsertFontTag,
-  type FontTagWithDetails
+  type FontTagWithDetails,
+  type AiSettings,
+  DEFAULT_AI_SYSTEM_PROMPT
 } from "@shared/schema";
 import { classifyFont, getTagColor, PRESET_TAGS } from "./classifier";
 
@@ -24,6 +26,7 @@ const FAVORITES_FILE = path.join(DATA_DIR, "favorites.json");
 const COLLECTION_ITEMS_FILE = path.join(DATA_DIR, "collection_items.json");
 const TAGS_FILE = path.join(DATA_DIR, "tags.json");
 const FONT_TAGS_FILE = path.join(DATA_DIR, "font_tags.json");
+const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -62,6 +65,9 @@ export interface IStorage {
   removeFontTag(family: string, tagId: string): Promise<void>;
   autoTagFonts(family?: string): Promise<void>;
   reload(): Promise<void>;
+  getAiSettings(): Promise<AiSettings>;
+  saveAiSettings(settings: Partial<AiSettings>): Promise<AiSettings>;
+  getAllDataForExport(): Promise<any>;
 }
 
 export class JsonStorage implements IStorage {
@@ -73,6 +79,15 @@ export class JsonStorage implements IStorage {
   private collectionItems: CollectionItem[] = [];
   private tags: Tag[] = [];
   private fontTags: FontTag[] = [];
+  private aiSettings: AiSettings = {
+    enabled: false,
+    provider: "deepseek",
+    baseUrl: "https://api.deepseek.com",
+    apiKey: "",
+    model: "deepseek-chat",
+    temperature: 0.3,
+    systemPrompt: DEFAULT_AI_SYSTEM_PROMPT,
+  };
 
   constructor() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
@@ -105,6 +120,20 @@ export class JsonStorage implements IStorage {
     this.collectionItems = this.readJson(COLLECTION_ITEMS_FILE, []);
     this.tags = this.readJson(TAGS_FILE, []);
     this.fontTags = this.readJson(FONT_TAGS_FILE, []);
+    const defaultAiSettings: AiSettings = {
+      enabled: Boolean(process.env.OPENAI_API_KEY || process.env.AI_API_KEY),
+      provider: (process.env.OPENAI_BASE_URL && process.env.OPENAI_BASE_URL.includes("deepseek")) ? "deepseek" : "openai",
+      baseUrl: process.env.OPENAI_BASE_URL || process.env.AI_BASE_URL || "https://api.openai.com/v1",
+      apiKey: process.env.OPENAI_API_KEY || process.env.AI_API_KEY || "",
+      model: process.env.AI_MODEL || "gpt-4o-mini",
+      temperature: 0.3,
+      systemPrompt: process.env.AI_SYSTEM_PROMPT || DEFAULT_AI_SYSTEM_PROMPT,
+    };
+    const savedSettings = this.readJson(SETTINGS_FILE, {});
+    this.aiSettings = { ...defaultAiSettings, ...savedSettings };
+    if (!this.aiSettings.systemPrompt) {
+      this.aiSettings.systemPrompt = DEFAULT_AI_SYSTEM_PROMPT;
+    }
     if (this.fontFaces.length > 0 && this.fontTags.length === 0) {
       this.autoTagFonts();
     }
@@ -132,6 +161,7 @@ export class JsonStorage implements IStorage {
     fs.writeFileSync(COLLECTION_ITEMS_FILE, JSON.stringify(this.collectionItems, null, 2));
     fs.writeFileSync(TAGS_FILE, JSON.stringify(this.tags, null, 2));
     fs.writeFileSync(FONT_TAGS_FILE, JSON.stringify(this.fontTags, null, 2));
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(this.aiSettings, null, 2));
   }
 
   // Categories
@@ -619,6 +649,41 @@ export class JsonStorage implements IStorage {
     }
   }
 
+
+  async getAiSettings(): Promise<AiSettings> {
+    return { ...this.aiSettings };
+  }
+
+  async saveAiSettings(settings: Partial<AiSettings>): Promise<AiSettings> {
+    this.aiSettings = {
+      ...this.aiSettings,
+      ...settings,
+    };
+    this.save();
+    return { ...this.aiSettings };
+  }
+
+  async getAllDataForExport(): Promise<any> {
+    return {
+      version: "1.0.0",
+      exportedAt: new Date().toISOString(),
+      categories: this.categories,
+      collections: this.collections,
+      collectionItems: this.collectionItems,
+      fontFiles: this.fontFiles,
+      fontFaces: this.fontFaces,
+      favorites: this.favorites,
+      tags: this.tags,
+      fontTags: this.fontTags,
+      settings: {
+        enabled: this.aiSettings.enabled,
+        provider: this.aiSettings.provider,
+        baseUrl: this.aiSettings.baseUrl,
+        model: this.aiSettings.model,
+        systemPrompt: this.aiSettings.systemPrompt,
+      },
+    };
+  }
 }
 
 export const storage = new JsonStorage();

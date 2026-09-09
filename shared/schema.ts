@@ -176,3 +176,39 @@ export const buildUrl = (path: string, params: Record<string, string | number> =
   }
   return url;
 };
+
+// === AI SETTINGS ===
+
+export const DEFAULT_AI_SYSTEM_PROMPT = `你是一位精通视觉艺术、平面设计和中英文字体排版的资深字体专家。
+你的任务是根据字体的名称、字重家族、物理文件路径等特征，分析其视觉风格与应用场景，并提炼 2 到 4 个高价值的中文风格分类标签。
+
+参考标签类别：
+- 风格特征：复古国风、商务黑体、典雅宋体、手写随性、二次元可爱、科技科幻、现代极简、硬朗工业、柔美圆润、潮酷街头、斑驳做旧
+- 场景定位：电商海报、正文阅读、大标题字、Logo设计、影视字幕、游戏UI、包装设计
+
+严格返回规则：
+1. 必须输出合法 JSON 对象，格式如下，禁止输出任何 Markdown 格式或额外说明文字：
+{"tags": ["标签1", "标签2"], "reason": "30字以内的中文设计分析理由"}
+2. 每个标签长度在 2 到 8 个汉字，不要加 # 符号。`;
+
+export interface AiSettings {
+  enabled: boolean;
+  provider: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  temperature?: number;
+  systemPrompt?: string;
+}
+
+export const insertAiSettingsSchema = z.object({
+  enabled: z.boolean().default(true),
+  provider: z.string().default("openai"),
+  baseUrl: z.string().min(1, "Base URL is required"),
+  apiKey: z.string().default(""),
+  model: z.string().min(1, "Model name is required"),
+  temperature: z.number().min(0).max(2).optional().default(0.3),
+  systemPrompt: z.string().optional().default(DEFAULT_AI_SYSTEM_PROMPT),
+});
+
+export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;

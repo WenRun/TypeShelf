@@ -2,7 +2,8 @@ import { useFont, useToggleFavorite } from "@/hooks/use-fonts";
 import { Sidebar } from "@/components/Sidebar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { Link, useRoute } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
+import { ToastAction } from "@/components/ui/toast";
 import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe, Copy, Tag as TagIcon, Sparkles, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFontTags, useAddFontTag, useRemoveFontTag, useAutoTagFont, useAiTagFont } from "@/hooks/use-tags";
@@ -32,6 +33,7 @@ export default function FontDetail() {
   const { mutate: addToCollection } = useAddFontToCollection();
   const { data: collections } = useCollections();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: fontTags = [], isLoading: isLoadingTags } = useFontTags(familyName);
   const { mutate: addFontTag, isPending: isAddingTag } = useAddFontTag(familyName);
@@ -42,7 +44,26 @@ export default function FontDetail() {
   const handleAiTag = () => {
     aiTag(undefined, {
       onSuccess: (res: any) => {
-        toast({ title: res.message || t("fontDetail.aiTagSuccess") });
+        if (res.status === "fallback_rule") {
+          toast({
+            title: res.message || t("fontDetail.aiTagFallback"),
+            description: t("fontDetail.aiTagFallbackDesc"),
+            action: (
+              <ToastAction
+                altText={t("fontDetail.goToSettings")}
+                onClick={() => setLocation("/settings")}
+                className="hover:bg-primary hover:text-primary-foreground shrink-0 cursor-pointer"
+              >
+                {t("fontDetail.goToSettings")}
+              </ToastAction>
+            ),
+          });
+        } else {
+          toast({
+            title: res.message || t("fontDetail.aiTagSuccess"),
+            description: res.aiReason || (res.generatedTags?.length ? `${t("fontDetail.tags")}: ${res.generatedTags.join(", ")}` : undefined),
+          });
+        }
       },
       onError: (err: any) => {
         toast({ title: err.message || "AI failed", variant: "destructive" });
