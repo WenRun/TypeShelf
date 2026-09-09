@@ -125,7 +125,16 @@
     "aiSource": "AI识别",
     "aiTagFallback": "已自动降级为规则识别",
     "aiTagFallbackDesc": "可前往「系统设置」配置大模型 API Key 开启完整 AI 风格分析",
-    "goToSettings": "前往配置"
+    "goToSettings": "前往配置",
+    "aiSuggestionsTitle": "AI 专属灵感候选 (点击加入)",
+    "aiCandidatesCount": "共 {{count}} 个候选",
+    "systemPresetTags": "系统通用基础分类",
+    "clickToAddTag": "点击将“{{tag}}”添加至当前字体",
+    "aiRecommended": "AI 智能定制",
+    "showSystemPresets": "查看通用基础分类",
+    "hideSystemPresets": "收起通用基础分类",
+    "allAiSuggestionsAdded": "AI 专属推荐分类已全部添加",
+    "clickAiHint": "可点击上方「AI智能分析」生成专属候选"
   },
   "settings": {
     "title": "设置",

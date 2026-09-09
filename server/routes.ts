@@ -341,7 +341,7 @@ export async function registerRoutes(
         headers["Authorization"] = `Bearer ${aiSettings.apiKey}`;
       }
 
-      let parsed: { tags?: string[]; reason?: string } | null = null;
+      let parsed: { tags?: string[]; suggestions?: string[]; reason?: string } | null = null;
 
       try {
         const response = await fetch(endpoint, {
@@ -404,6 +404,20 @@ export async function registerRoutes(
         }
       }
 
+      const assignedTagNames = new Set((font.tags || []).map((tag: any) => String(tag.name).toLowerCase()));
+
+      const candidateSuggestions: string[] = [];
+      if (Array.isArray(parsed.suggestions)) {
+        for (const raw of parsed.suggestions) {
+          const clean = String(raw).replace(/^[#＃\s]+|[#＃\s]+$/g, "").trim();
+          if (clean && clean.length >= 2 && clean.length <= 15 && !assignedTagNames.has(clean.toLowerCase()) && !generatedTags.includes(clean)) {
+            candidateSuggestions.push(clean);
+          }
+        }
+      }
+
+      await storage.saveAiSuggestions(family, candidateSuggestions, parsed.reason);
+
       const updatedTags = await storage.getFontTags(family);
       return res.json({
         status: "success",
@@ -411,6 +425,7 @@ export async function registerRoutes(
         tags: updatedTags,
         aiReason: parsed.reason || "已由大模型完成风格特征归类",
         generatedTags,
+        suggestions: candidateSuggestions,
       });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to AI tag font" });

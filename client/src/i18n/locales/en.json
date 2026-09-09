@@ -109,7 +109,7 @@
     "copy": "Copy",
     "tags": "Categories & Tags",
     "noTags": "No tags assigned. Select from suggested or add custom tags below.",
-    "suggestedTags": "Suggested Tags",
+    "suggestedTags": "Recommended Tags",
     "addCustomTag": "Add custom tag...",
     "addTag": "Add",
     "tagAdded": "Tag added successfully",
@@ -125,7 +125,16 @@
     "aiSource": "AI",
     "aiTagFallback": "Fell back to rule-based classification",
     "aiTagFallbackDesc": "You can configure an AI API Key in Settings to enable deep LLM typography analysis.",
-    "goToSettings": "Go to Settings"
+    "goToSettings": "Go to Settings",
+    "aiSuggestionsTitle": "AI Tailored Suggestions (Click to add)",
+    "aiCandidatesCount": "{{count}} candidates",
+    "systemPresetTags": "Universal Presets",
+    "clickToAddTag": "Click to add \"{{tag}}\" to font",
+    "aiRecommended": "AI Tailored",
+    "showSystemPresets": "Show universal presets",
+    "hideSystemPresets": "Hide universal presets",
+    "allAiSuggestionsAdded": "All AI tailored suggestions added",
+    "clickAiHint": "Click \"AI Smart Analysis\" above for tailored tags"
   },
   "settings": {
     "title": "Settings",

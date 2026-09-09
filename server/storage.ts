@@ -27,6 +27,7 @@ const COLLECTION_ITEMS_FILE = path.join(DATA_DIR, "collection_items.json");
 const TAGS_FILE = path.join(DATA_DIR, "tags.json");
 const FONT_TAGS_FILE = path.join(DATA_DIR, "font_tags.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
+const AI_SUGGESTIONS_FILE = path.join(DATA_DIR, "ai_suggestions.json");
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -67,6 +68,8 @@ export interface IStorage {
   reload(): Promise<void>;
   getAiSettings(): Promise<AiSettings>;
   saveAiSettings(settings: Partial<AiSettings>): Promise<AiSettings>;
+  getAiSuggestions(family: string): Promise<{ suggestions: string[]; reason?: string } | undefined>;
+  saveAiSuggestions(family: string, suggestions: string[], reason?: string): Promise<void>;
   getAllDataForExport(): Promise<any>;
 }
 
@@ -79,6 +82,7 @@ export class JsonStorage implements IStorage {
   private collectionItems: CollectionItem[] = [];
   private tags: Tag[] = [];
   private fontTags: FontTag[] = [];
+  private aiSuggestions: Record<string, { suggestions: string[]; reason?: string }> = {};
   private aiSettings: AiSettings = {
     enabled: false,
     provider: "deepseek",
@@ -120,6 +124,7 @@ export class JsonStorage implements IStorage {
     this.collectionItems = this.readJson(COLLECTION_ITEMS_FILE, []);
     this.tags = this.readJson(TAGS_FILE, []);
     this.fontTags = this.readJson(FONT_TAGS_FILE, []);
+    this.aiSuggestions = this.readJson(AI_SUGGESTIONS_FILE, {});
     const defaultAiSettings: AiSettings = {
       enabled: Boolean(process.env.OPENAI_API_KEY || process.env.AI_API_KEY),
       provider: (process.env.OPENAI_BASE_URL && process.env.OPENAI_BASE_URL.includes("deepseek")) ? "deepseek" : "openai",
@@ -161,6 +166,7 @@ export class JsonStorage implements IStorage {
     fs.writeFileSync(COLLECTION_ITEMS_FILE, JSON.stringify(this.collectionItems, null, 2));
     fs.writeFileSync(TAGS_FILE, JSON.stringify(this.tags, null, 2));
     fs.writeFileSync(FONT_TAGS_FILE, JSON.stringify(this.fontTags, null, 2));
+    fs.writeFileSync(AI_SUGGESTIONS_FILE, JSON.stringify(this.aiSuggestions, null, 2));
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(this.aiSettings, null, 2));
   }
 
@@ -488,8 +494,9 @@ export class JsonStorage implements IStorage {
       .map(i => i.collectionId);
 
     const tags = await this.getFontTags(family);
+    const aiMeta = this.aiSuggestions[family] || null;
 
-    return { family, faces, collections, tags };
+    return { family, faces, collections, tags, aiMeta };
   }
 
   // Tags
@@ -661,6 +668,15 @@ export class JsonStorage implements IStorage {
     };
     this.save();
     return { ...this.aiSettings };
+  }
+
+  async getAiSuggestions(family: string): Promise<{ suggestions: string[]; reason?: string } | undefined> {
+    return this.aiSuggestions[family];
+  }
+
+  async saveAiSuggestions(family: string, suggestions: string[], reason?: string): Promise<void> {
+    this.aiSuggestions[family] = { suggestions, reason };
+    this.save();
   }
 
   async getAllDataForExport(): Promise<any> {

@@ -41,6 +41,15 @@ export default function FontDetail() {
   const { mutate: autoTag, isPending: isAutoTagging } = useAutoTagFont(familyName);
   const { mutate: aiTag, isPending: isAiTagging } = useAiTagFont(familyName);
 
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [showSystemPresets, setShowSystemPresets] = useState(false);
+
+  useEffect(() => {
+    if (font?.aiMeta?.suggestions && Array.isArray(font.aiMeta.suggestions)) {
+      setAiSuggestions(font.aiMeta.suggestions);
+    }
+  }, [font?.aiMeta?.suggestions]);
+
   const handleAiTag = () => {
     aiTag(undefined, {
       onSuccess: (res: any) => {
@@ -59,6 +68,9 @@ export default function FontDetail() {
             ),
           });
         } else {
+          if (Array.isArray(res.suggestions)) {
+            setAiSuggestions(res.suggestions);
+          }
           toast({
             title: res.message || t("fontDetail.aiTagSuccess"),
             description: res.aiReason || (res.generatedTags?.length ? `${t("fontDetail.tags")}: ${res.generatedTags.join(", ")}` : undefined),
@@ -76,10 +88,18 @@ export default function FontDetail() {
     "黑体", "宋体", "楷体", "仿宋", "圆体", "书法手写", "美术创意", "卡通可爱", "艺术海报", "等宽字体", "可变字体"
   ];
 
-  const unassignedPresets = useMemo(() => {
+  const unassignedAiSuggestions = useMemo(() => {
     const currentNames = new Set(fontTags.map((t: FontTagWithDetails) => t.name.toLowerCase()));
+    return aiSuggestions.filter(s => !currentNames.has(s.toLowerCase()));
+  }, [fontTags, aiSuggestions]);
+
+  const unassignedPresets = useMemo(() => {
+    const currentNames = new Set([
+      ...fontTags.map((t: FontTagWithDetails) => t.name.toLowerCase()),
+      ...unassignedAiSuggestions.map(s => s.toLowerCase()),
+    ]);
     return PRESET_SUGGESTIONS.filter(p => !currentNames.has(p.toLowerCase()));
-  }, [fontTags]);
+  }, [fontTags, unassignedAiSuggestions]);
 
   const handleAddTag = (name: string, source: string = "user") => {
     const trimmed = name.trim();
@@ -531,12 +551,62 @@ export default function FontDetail() {
                   )}
                 </div>
 
-                {/* Suggested Preset Tags */}
-                {unassignedPresets.length > 0 && (
+                {/* AI Tailored Candidate Suggestions */}
+                {aiSuggestions.length > 0 && (
+                  <div className="space-y-1.5 pt-1.5 pb-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-amber-500 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                        {t("fontDetail.aiSuggestionsTitle")}:
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        {t("fontDetail.aiCandidatesCount", { count: unassignedAiSuggestions.length })}
+                      </span>
+                    </div>
+                    {unassignedAiSuggestions.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {unassignedAiSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => handleAddTag(suggestion, "ai")}
+                            disabled={isAddingTag}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer shadow-2xs"
+                            title={t("fontDetail.clickToAddTag", { tag: suggestion })}
+                          >
+                            <Plus className="w-3 h-3 opacity-80" />
+                            <span>{suggestion}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400/90 bg-amber-500/5 border border-amber-500/20 rounded-md px-2.5 py-1.5">
+                        {t("fontDetail.allAiSuggestionsAdded")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Standard Preset Tags */}
+                {(aiSuggestions.length === 0 || showSystemPresets) && unassignedPresets.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <span className="text-[11px] font-medium text-muted-foreground">
-                      {t("fontDetail.suggestedTags")}:
-                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {aiSuggestions.length > 0 ? t("fontDetail.systemPresetTags") : t("fontDetail.suggestedTags")}:
+                      </span>
+                      {aiSuggestions.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowSystemPresets((visible) => !visible)}
+                          className="text-[10px] font-medium text-muted-foreground hover:text-foreground underline decoration-dotted underline-offset-2 cursor-pointer"
+                        >
+                          {showSystemPresets ? t("fontDetail.hideSystemPresets") : t("fontDetail.showSystemPresets")}
+                        </button>
+                      )}
+                    </div>
+                    {aiSuggestions.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground/80">{t("fontDetail.clickAiHint")}</p>
+                    )}
                     <div className="flex flex-wrap gap-1.5">
                       {unassignedPresets.map((preset) => (
                         <button
