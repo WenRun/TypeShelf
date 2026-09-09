@@ -28,7 +28,9 @@ ENV PORT=5000
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/fonts ./fonts
+
+# Create persistent mount points
+RUN mkdir -p /app/fonts /app/data
 
 # Drizzle config (TypeScript)
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
