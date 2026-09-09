@@ -160,7 +160,7 @@ function NavItem({
         </div>
         <span className="truncate flex-1">{label}</span>
         {count !== undefined && (
-          <span className="text-xs bg-black/20 px-1.5 py-0.5 rounded text-muted-foreground ml-auto">{count}</span>
+          <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground ml-auto">{count}</span>
         )}
       </Link>
       

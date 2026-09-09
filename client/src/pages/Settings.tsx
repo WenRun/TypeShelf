@@ -1,27 +1,17 @@
 import { Sidebar } from "@/components/Sidebar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { useTheme } from "@/hooks/use-theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Download, Database, Globe, Settings as SettingsIcon } from "lucide-react";
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
 export default function Settings() {
   const { t } = useTranslation();
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme } = useTheme();
   const { toast } = useToast();
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-    toast({ 
-      title: t("settings.switchedTo", { 
-        theme: newTheme === "dark" ? t("common.dark") : t("common.light") 
-      }) 
-    });
-  };
 
   const exportDatabase = async () => {
     try {
@@ -56,7 +46,7 @@ export default function Settings() {
   return (
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="flex items-center gap-3 mb-8">
             <SettingsIcon className="w-8 h-8 text-primary" />
@@ -96,9 +86,7 @@ export default function Settings() {
                     {theme === "dark" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                     <span className="font-medium">{theme === "dark" ? t("settings.darkMode") : t("settings.lightMode")}</span>
                   </div>
-                  <Button variant="outline" size="sm" onClick={toggleTheme}>
-                    {t("settings.switchTheme")}
-                  </Button>
+                  <ThemeSwitcher variant="select" showToast={true} />
                 </div>
               </CardContent>
             </Card>

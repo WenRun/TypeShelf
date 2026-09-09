@@ -80,8 +80,7 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
     <Link href={`/fonts/${encodeURIComponent(family)}`} className="block group">
       <div className="
         bg-card h-[280px] rounded-2xl p-6 border border-border/50
-        shadow-sm shadow-black/20
-        group-hover:shadow-xl group-hover:shadow-black/40 group-hover:border-primary/50 group-hover:-translate-y-1
+        shadow-sm group-hover:shadow-xl group-hover:border-primary/50 group-hover:-translate-y-1
         transition-all duration-300 ease-out relative flex flex-col
       ">
         {/* Actions overlay - Top Right */}
@@ -89,7 +88,7 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
           {onDeleteFromCollection ? (
             <button 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteFromCollection(); }}
-              className="p-2 rounded-lg bg-black/40 text-white/70 hover:bg-destructive hover:text-white backdrop-blur-md transition-colors"
+              className="p-2 rounded-lg bg-background/80 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground backdrop-blur-md border border-border/40 transition-colors shadow-sm"
               title={t("fontCard.removeFromCollection")}
             >
               <Plus className="w-4 h-4 rotate-45" />
@@ -99,7 +98,7 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
               <DropdownMenuTrigger asChild>
                 <button 
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  className="p-2 rounded-lg bg-black/40 text-white/70 hover:bg-black/60 hover:text-white backdrop-blur-md transition-colors"
+                  className="p-2 rounded-lg bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground backdrop-blur-md border border-border/40 transition-colors shadow-sm"
                   title={t("fontCard.addToCollection", { name: "" }).trim()}
                 >
                   <Plus className="w-4 h-4" />
@@ -124,7 +123,7 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
               "p-2 rounded-lg backdrop-blur-md transition-colors",
               isFavorite 
                 ? "bg-primary/20 text-primary hover:bg-primary/30" 
-                : "bg-black/40 text-white/70 hover:bg-black/60 hover:text-white"
+                : "bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/40 shadow-sm"
             )}
             title={isFavorite ? t("fontCard.favorited") : t("fontCard.favorite")}
           >

@@ -1,6 +1,7 @@
 import { useFont, useToggleFavorite } from "@/hooks/use-fonts";
 import { Sidebar } from "@/components/Sidebar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Link, useRoute } from "wouter";
 import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,7 @@ export default function FontDetail() {
               </Button>
             )}
 
+            <ThemeSwitcher variant="icon" />
             <LanguageSwitcher variant="icon" />
           </div>
         </header>
@@ -286,7 +288,7 @@ export default function FontDetail() {
                   {t("fontDetail.webIntegration")}
                 </h4>
                 <div className="relative">
-                  <pre className="p-4 rounded-lg bg-black text-[11px] font-mono text-muted-foreground overflow-x-auto border border-border">
+                  <pre className="p-4 rounded-lg bg-secondary/50 text-[11px] font-mono text-foreground overflow-x-auto border border-border">
                     {`@font-face {
   font-family: '${font.family}';
   src: url('/fonts-static/${font.faces[0]?.file.urlKey}/${font.faces[0]?.file.filename}');
@@ -305,7 +307,7 @@ export default function FontDetail() {
                   {t("fontDetail.cssUsage")}
                 </h4>
                 <div className="relative">
-                  <pre className="p-4 rounded-lg bg-black text-[11px] font-mono text-muted-foreground border border-border">
+                  <pre className="p-4 rounded-lg bg-secondary/50 text-[11px] font-mono text-foreground border border-border">
                     {`body {
   font-family: '${font.family}', sans-serif;
 }`}

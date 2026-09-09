@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { FontCard } from "@/components/FontCard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useFonts, useRescanFonts } from "@/hooks/use-fonts";
 import { useRemoveFontFromCollection } from "@/hooks/use-collections";
 import { Search, RefreshCw } from "lucide-react";
@@ -87,6 +88,7 @@ export default function Home() {
               <RefreshCw className={`w-4 h-4 ${isRescanPending ? "animate-spin" : ""}`} />
             </Button>
 
+            <ThemeSwitcher variant="icon" />
             <LanguageSwitcher variant="icon" />
           </div>
         </header>
