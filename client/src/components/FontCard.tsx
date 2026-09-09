@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { type FontFace, type FontFile } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { Heart, Plus } from "lucide-react";
+import { Heart, Plus, FileText } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleFavorite } from "@/hooks/use-fonts";
@@ -39,6 +39,24 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
   // Use a unique ID based on the family and subfamily to avoid collision
   const fontStyleId = useMemo(() => `font-${family.replace(/\s+/g, '-').toLowerCase()}-${previewFace.id}`, [family, previewFace.id]);
   const fontUrl = `/fonts-static/${previewFace.file.urlKey}/${previewFace.file.filename}`;
+
+  // Extract unique file names for display
+  const fileNames = useMemo(() => {
+    const names = faces
+      .map(f => f.file?.filename)
+      .filter((name): name is string => Boolean(name));
+    return Array.from(new Set(names));
+  }, [faces]);
+
+  const displayFileName = useMemo(() => {
+    if (fileNames.length === 0) return "";
+    if (fileNames.length === 1) return fileNames[0];
+    return `${fileNames[0]} (+${fileNames.length - 1})`;
+  }, [fileNames]);
+
+  const fullFileNamesTooltip = useMemo(() => {
+    return fileNames.join("\n");
+  }, [fileNames]);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -159,12 +177,24 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
         </div>
 
         {/* Footer */}
-        <div className="mt-6 flex items-center gap-2">
-          {Array.from(new Set(faces.map(f => f.file.ext.toUpperCase()))).map(ext => (
-             <span key={ext} className="text-[10px] font-mono font-medium bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground/70">
-               {ext}
-             </span>
-          ))}
+        <div className="mt-6 flex items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {Array.from(new Set(faces.map(f => f.file?.ext ? f.file.ext.toUpperCase() : ""))).filter(Boolean).map(ext => (
+               <span key={ext} className="text-[10px] font-mono font-medium bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground/70">
+                 {ext}
+               </span>
+            ))}
+          </div>
+
+          {displayFileName && (
+            <div 
+              className="flex items-center gap-1 min-w-0 max-w-[65%] text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors font-mono"
+              title={fullFileNamesTooltip}
+            >
+              <FileText className="w-3.5 h-3.5 shrink-0 opacity-60" />
+              <span className="truncate">{displayFileName}</span>
+            </div>
+          )}
         </div>
       </div>
     </Link>
