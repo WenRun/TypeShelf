@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Category, type InsertCategory } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
+export type CategoryWithCount = Category & { count: number };
+
 // GET /api/categories
 export function useCategories() {
-  return useQuery<Category[]>({
+  return useQuery<CategoryWithCount[]>({
     queryKey: ["/api/categories"],
   });
 }
@@ -19,6 +21,7 @@ export function useCreateCategory() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
     },
   });
 }
@@ -32,6 +35,7 @@ export function useDeleteCategory() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
     },
   });
 }

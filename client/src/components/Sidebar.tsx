@@ -19,6 +19,7 @@ import {
 import { useTags, type TagWithCount } from "@/hooks/use-tags";
 import { useCollections, useCreateCollection, useDeleteCollection } from "@/hooks/use-collections";
 import { useCategories, useCreateCategory, useDeleteCategory } from "@/hooks/use-categories";
+import { useStats } from "@/hooks/use-fonts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,6 +42,7 @@ export function Sidebar() {
   const { data: collections } = useCollections();
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
+  const { data: stats } = useStats();
   const [showAllTags, setShowAllTags] = useState(false);
 
   // Show tags with fonts or top presets
@@ -66,8 +68,8 @@ export function Sidebar() {
       <nav className="flex-1 px-4 space-y-8">
         {/* Main Links */}
         <div className="space-y-1">
-          <NavItem href="/" icon={<Type />} label={t("sidebar.allFonts")} active={location === "/"} />
-          <NavItem href="/favorites" icon={<Heart />} label={t("sidebar.favorites")} active={location === "/favorites"} />
+          <NavItem href="/" icon={<Type />} label={t("sidebar.allFonts")} active={location === "/"} count={stats?.totalFonts} />
+          <NavItem href="/favorites" icon={<Heart />} label={t("sidebar.favorites")} active={location === "/favorites"} count={stats?.totalFavorites} />
         </div>
 
         {/* Collections */}
@@ -109,6 +111,7 @@ export function Sidebar() {
                 icon={<FolderOpen className="w-4 h-4" />}
                 label={cat.name}
                 active={location === `/categories/${cat.id}`}
+                count={cat.count}
                 onDelete={cat.id}
                 deleteType="category"
               />
@@ -217,7 +220,14 @@ function NavItem({
         </div>
         <span className="truncate flex-1">{label}</span>
         {count !== undefined && (
-          <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground ml-auto">{count}</span>
+          <span className={cn(
+            "text-xs px-1.5 py-0.5 rounded ml-auto transition-colors font-mono tabular-nums",
+            active 
+              ? "bg-primary/20 text-primary font-semibold" 
+              : "bg-muted text-muted-foreground"
+          )}>
+            {count}
+          </span>
         )}
       </Link>
       

@@ -1,5 +1,5 @@
 ﻿import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { type InsertFavorite, type InsertCollectionItem } from "@shared/schema";
+import { type InsertFavorite, type InsertCollectionItem, type SystemStats } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 export interface FontFilters {
@@ -113,6 +113,7 @@ export function useRescanFonts() {
       queryClient.invalidateQueries({ queryKey: ["/api/fonts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
     },
   });
 }
@@ -134,6 +135,21 @@ export function useToggleFavorite() {
       }
       queryClient.invalidateQueries({ queryKey: ["/api/fonts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
     },
+  });
+}
+
+
+// GET /api/stats
+export function useStats() {
+  return useQuery<SystemStats>({
+    queryKey: ["/api/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/stats");
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
