@@ -122,11 +122,20 @@ export async function registerRoutes(
   app.get("/api/fonts", async (req, res) => {
     try {
       const q = req.query;
+      const rawTagIds = q.tagIds || q.tagId;
+      let tagIds: string[] | undefined = undefined;
+      if (Array.isArray(rawTagIds)) {
+        tagIds = rawTagIds.map(String).filter(Boolean);
+      } else if (typeof rawTagIds === 'string' && rawTagIds.trim()) {
+        tagIds = rawTagIds.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
       const result = await storage.searchFonts({
           q: q.q as string,
           categoryId: q.categoryId as string,
           collectionId: q.collectionId as string,
           tagId: q.tagId as string,
+          tagIds,
           favorites: q.favorites === 'true',
           types: q.types ? (q.types as string).split(',') : undefined,
           italic: q.italic === 'true',

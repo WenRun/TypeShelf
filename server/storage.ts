@@ -419,9 +419,31 @@ export class JsonStorage implements IStorage {
       results = results.filter(r => r.file.categoryId === params.categoryId);
     }
 
-    if (params.tagId) {
-      const taggedFamilies = new Set(this.fontTags.filter(ft => ft.tagId === params.tagId).map(ft => ft.family));
-      results = results.filter(r => taggedFamilies.has(r.face.family));
+    // Tag filtering: supports single tagId or multiple tagIds (AND / intersection mode)
+    const targetTagIds: string[] = (Array.isArray(params.tagIds) && params.tagIds.length > 0)
+      ? params.tagIds.filter(Boolean)
+      : (params.tagId ? [params.tagId] : []);
+
+    if (targetTagIds.length > 0) {
+      let intersectionFamilies: Set<string> | null = null;
+      for (const tId of targetTagIds) {
+        const familiesWithTag = new Set(
+          this.fontTags.filter(ft => ft.tagId === tId).map(ft => ft.family)
+        );
+        if (intersectionFamilies === null) {
+          intersectionFamilies = new Set(familiesWithTag);
+        } else {
+          const next = new Set<string>();
+          intersectionFamilies.forEach(f => {
+            if (familiesWithTag.has(f)) {
+              next.add(f);
+            }
+          });
+          intersectionFamilies = next;
+        }
+      }
+      const matchingFamilies = intersectionFamilies || new Set<string>();
+      results = results.filter(r => matchingFamilies.has(r.face.family));
     }
 
     const favs = this.favorites.filter(f => f.targetType === 'family');
@@ -493,10 +515,14 @@ export class JsonStorage implements IStorage {
       .filter(i => i.targetType === 'family' && i.targetId === family)
       .map(i => i.collectionId);
 
+    const isFavorite = this.favorites.some(
+      f => f.targetType === 'family' && f.targetId === family
+    );
+
     const tags = await this.getFontTags(family);
     const aiMeta = this.aiSuggestions[family] || null;
 
-    return { family, faces, collections, tags, aiMeta };
+    return { family, faces, collections, tags, aiMeta, isFavorite };
   }
 
   // Tags
