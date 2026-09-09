@@ -74,6 +74,16 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // === Stats ===
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const stats = await storage.getStats();
+      res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to get stats" });
+    }
+  });
+
   // === Favorites ===
   app.get("/api/favorites", async (req, res) => {
     const favs = await storage.getFavorites();

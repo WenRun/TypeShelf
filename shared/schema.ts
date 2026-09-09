@@ -219,3 +219,8 @@ export const insertAiSettingsSchema = z.object({
 });
 
 export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;
+
+export interface SystemStats {
+  totalFonts: number;
+  totalFavorites: number;
+}

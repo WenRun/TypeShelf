@@ -12,7 +12,8 @@ import {
   type FontTag, type InsertFontTag,
   type FontTagWithDetails,
   type AiSettings,
-  DEFAULT_AI_SYSTEM_PROMPT
+  DEFAULT_AI_SYSTEM_PROMPT,
+  type SystemStats
 } from "@shared/schema";
 import { classifyFont, getTagColor, PRESET_TAGS } from "./classifier";
 
@@ -30,7 +31,7 @@ const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const AI_SUGGESTIONS_FILE = path.join(DATA_DIR, "ai_suggestions.json");
 
 export interface IStorage {
-  getCategories(): Promise<Category[]>;
+  getCategories(): Promise<(Category & { count: number })[]>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, updates: Partial<Category>): Promise<Category>;
   deleteCategory(id: string): Promise<void>;
@@ -70,6 +71,7 @@ export interface IStorage {
   saveAiSettings(settings: Partial<AiSettings>): Promise<AiSettings>;
   getAiSuggestions(family: string): Promise<{ suggestions: string[]; reason?: string } | undefined>;
   saveAiSuggestions(family: string, suggestions: string[], reason?: string): Promise<void>;
+  getStats(): Promise<SystemStats>;
   getAllDataForExport(): Promise<any>;
 }
 
@@ -171,8 +173,22 @@ export class JsonStorage implements IStorage {
   }
 
   // Categories
-  async getCategories(): Promise<Category[]> {
-    return [...this.categories].sort((a, b) => a.name.localeCompare(b.name));
+  async getCategories(): Promise<(Category & { count: number })[]> {
+    const validFilesMap = new Map(this.fontFiles.map(f => [f.id, f]));
+    return this.categories.map(c => {
+      const catFamilies = new Set<string>();
+      for (const face of this.fontFaces) {
+        const file = face.fontFileId ? validFilesMap.get(face.fontFileId) : undefined;
+        if (file && file.categoryId === c.id) {
+          const famName = face.family || (file.filename ? file.filename.replace(/\.[^/.]+$/, '') : 'Unknown Font');
+          catFamilies.add(famName);
+        }
+      }
+      return {
+        ...c,
+        count: catFamilies.size,
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
@@ -703,6 +719,35 @@ export class JsonStorage implements IStorage {
   async saveAiSuggestions(family: string, suggestions: string[], reason?: string): Promise<void> {
     this.aiSuggestions[family] = { suggestions, reason };
     this.save();
+  }
+
+  async getStats(): Promise<SystemStats> {
+    const validFilesMap = new Map(this.fontFiles.map(f => [f.id, f]));
+    const families = new Set<string>();
+    const favFamilies = new Set(
+      this.favorites
+        .filter(f => f.targetType === 'family')
+        .map(f => f.targetId)
+    );
+
+    for (const face of this.fontFaces) {
+      const file = face.fontFileId ? validFilesMap.get(face.fontFileId) : undefined;
+      if (!file) continue;
+      const famName = face.family || (file.filename ? file.filename.replace(/\.[^/.]+$/, '') : 'Unknown Font');
+      families.add(famName);
+    }
+
+    let totalFavorites = 0;
+    favFamilies.forEach(fav => {
+      if (families.has(fav)) {
+        totalFavorites++;
+      }
+    });
+
+    return {
+      totalFonts: families.size,
+      totalFavorites,
+    };
   }
 
   async getAllDataForExport(): Promise<any> {
