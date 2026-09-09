@@ -73,7 +73,7 @@ export default function FontDetail() {
   const [newTagName, setNewTagName] = useState("");
 
   const PRESET_SUGGESTIONS = [
-    "黑体", "宋体", "楷体", "圆体", "书法手写", "卡通可爱", "艺术海报", "等宽字体", "可变字体"
+    "黑体", "宋体", "楷体", "仿宋", "圆体", "书法手写", "美术创意", "卡通可爱", "艺术海报", "等宽字体", "可变字体"
   ];
 
   const unassignedPresets = useMemo(() => {
