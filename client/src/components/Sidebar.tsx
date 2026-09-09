@@ -22,8 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const [location] = useLocation();
   const { data: collections } = useCollections();
   const { data: categories } = useCategories();
@@ -39,44 +41,44 @@ export function Sidebar() {
       <nav className="flex-1 px-4 space-y-8">
         {/* Main Links */}
         <div className="space-y-1">
-          <NavItem href="/" icon={<Type />} label="All Fonts" active={location === "/"} />
-          <NavItem href="/favorites" icon={<Heart />} label="Favorites" active={location === "/favorites"} />
-      </div>
+          <NavItem href="/" icon={<Type />} label={t("sidebar.allFonts")} active={location === "/"} />
+          <NavItem href="/favorites" icon={<Heart />} label={t("sidebar.favorites")} active={location === "/favorites"} />
+        </div>
 
-      {/* Collections */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collections</h3>
-          <CreateCollectionDialog />
+        {/* Collections */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("sidebar.collections")}</h3>
+            <CreateCollectionDialog />
+          </div>
+          <div className="space-y-0.5">
+            {collections?.map((col) => (
+              <NavItem 
+                key={col.id}
+                href={`/collections/${col.id}`}
+                icon={<LayoutGrid className="w-4 h-4" />}
+                label={col.name}
+                active={location === `/collections/${col.id}`}
+                count={col.count}
+                onDelete={col.id}
+                deleteType="collection"
+              />
+            ))}
+            {(!collections || collections.length === 0) && (
+              <p className="text-xs text-muted-foreground px-3 py-2 italic">{t("sidebar.noCollections")}</p>
+            )}
+          </div>
         </div>
-        <div className="space-y-0.5">
-          {collections?.map((col) => (
-            <NavItem 
-              key={col.id}
-              href={`/collections/${col.id}`}
-              icon={<LayoutGrid className="w-4 h-4" />}
-              label={col.name}
-              active={location === `/collections/${col.id}`}
-              count={col.count}
-              onDelete={col.id}
-              deleteType="collection"
-            />
-          ))}
-          {(!collections || collections.length === 0) && (
-            <p className="text-xs text-muted-foreground px-3 py-2 italic">No collections yet</p>
-          )}
-        </div>
-      </div>
 
         {/* Categories (Folders) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between px-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Folders</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("sidebar.folders")}</h3>
             <CreateCategoryDialog />
           </div>
           <div className="space-y-0.5">
             {categories?.map((cat) => (
-              <NavItem
+              <NavItem 
                 key={cat.id}
                 href={`/categories/${cat.id}`}
                 icon={<FolderOpen className="w-4 h-4" />}
@@ -87,14 +89,14 @@ export function Sidebar() {
               />
             ))}
             {(!categories || categories.length === 0) && (
-               <p className="text-xs text-muted-foreground px-3 py-2 italic">No folders linked</p>
+               <p className="text-xs text-muted-foreground px-3 py-2 italic">{t("sidebar.noFolders")}</p>
             )}
           </div>
         </div>
       </nav>
 
       <div className="p-4 border-t border-border mt-auto">
-        <NavItem href="/settings" icon={<SettingsIcon />} label="Settings" active={location === "/settings"} />
+        <NavItem href="/settings" icon={<SettingsIcon />} label={t("sidebar.settings")} active={location === "/settings"} />
       </div>
     </aside>
   );
@@ -117,6 +119,7 @@ function NavItem({
   onDelete?: string;
   deleteType?: "collection" | "category";
 }) {
+  const { t } = useTranslation();
   const { mutate: deleteCollection } = useDeleteCollection();
   const { mutate: deleteCategory } = useDeleteCategory();
   const { toast } = useToast();
@@ -127,17 +130,17 @@ function NavItem({
     
     if (!onDelete) return;
 
-    if (confirm("Are you sure you want to delete this?")) {
+    if (confirm(t("sidebar.deleteConfirm"))) {
       if (deleteType === "collection") {
         deleteCollection(onDelete, {
           onSuccess: () => {
-            toast({ title: "Collection deleted" });
+            toast({ title: t("sidebar.collectionDeleted") });
           }
         });
       } else if (deleteType === "category") {
         deleteCategory(onDelete, {
           onSuccess: () => {
-            toast({ title: "Folder removed" });
+            toast({ title: t("sidebar.folderRemoved") });
           }
         });
       }
@@ -152,7 +155,6 @@ function NavItem({
           ? "bg-primary/10 text-primary" 
           : "text-muted-foreground hover:bg-secondary hover:text-foreground"
       )}>
-        {/* Clone icon with current color class */}
         <div className={cn("w-5 h-5 transition-colors", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
           {icon}
         </div>
@@ -175,6 +177,7 @@ function NavItem({
 }
 
 function CreateCollectionDialog() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const { mutate, isPending } = useCreateCollection();
@@ -188,7 +191,7 @@ function CreateCollectionDialog() {
       onSuccess: () => {
         setOpen(false);
         setName("");
-        toast({ title: "Collection created" });
+        toast({ title: t("sidebar.createCollection") });
       }
     });
   };
@@ -196,24 +199,24 @@ function CreateCollectionDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-muted-foreground hover:text-primary transition-colors">
+        <button className="text-muted-foreground hover:text-primary transition-colors" title={t("sidebar.newCollection")}>
           <Plus className="w-4 h-4" />
         </button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Collection</DialogTitle>
+          <DialogTitle>{t("sidebar.newCollection")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <Input 
-            placeholder="Collection Name" 
+            placeholder={t("sidebar.collectionNamePlaceholder")} 
             value={name} 
             onChange={(e) => setName(e.target.value)} 
             autoFocus
           />
           <div className="flex justify-end">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create"}
+              {isPending ? t("common.creating") : t("sidebar.createCollection")}
             </Button>
           </div>
         </form>
@@ -223,6 +226,7 @@ function CreateCollectionDialog() {
 }
 
 function CreateCategoryDialog() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [path, setPath] = useState("");
@@ -238,7 +242,7 @@ function CreateCategoryDialog() {
         setOpen(false);
         setName("");
         setPath("");
-        toast({ title: "Folder added" });
+        toast({ title: t("sidebar.addFolder") });
       }
     });
   };
@@ -246,18 +250,18 @@ function CreateCategoryDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen} modal={false}>
       <DialogTrigger asChild>
-        <button className="text-muted-foreground hover:text-primary transition-colors">
+        <button className="text-muted-foreground hover:text-primary transition-colors" title={t("sidebar.addFolder")}>
           <Plus className="w-4 h-4" />
         </button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Font Folder</DialogTitle>
+          <DialogTitle>{t("sidebar.addFolder")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Input 
-              placeholder="Folder Name" 
+              placeholder={t("sidebar.folderNamePlaceholder")} 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
             />
@@ -265,7 +269,7 @@ function CreateCategoryDialog() {
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={isPending || !path.trim()}>
-              {isPending ? "Adding..." : "Add Folder"}
+              {isPending ? t("common.adding") : t("sidebar.addFolder")}
             </Button>
           </div>
         </form>
@@ -275,6 +279,7 @@ function CreateCategoryDialog() {
 }
 
 function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: string) => void }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const defaultHome = "/home/umbrel/umbrel/home";
   const [browsePath, setBrowsePath] = useState(value || defaultHome);
@@ -325,13 +330,13 @@ function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: 
                 <span className="truncate">{value}</span>
               </>
             ) : (
-              <span className="text-muted-foreground/60">No folder selected</span>
+              <span className="text-muted-foreground/60">{t("sidebar.noFolderSelected")}</span>
             )}
           </div>
         </div>
         <PopoverTrigger asChild>
           <Button type="button" variant="outline" size="sm" className="shrink-0 h-10">
-            Browse
+            {t("sidebar.browse")}
           </Button>
         </PopoverTrigger>
       </div>
@@ -358,9 +363,9 @@ function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: 
               </button>
             )}
             {loading ? (
-              <div className="px-2 py-4 text-xs text-muted-foreground text-center">Loading...</div>
+              <div className="px-2 py-4 text-xs text-muted-foreground text-center">{t("common.loading")}</div>
             ) : entries.length === 0 ? (
-              <div className="px-2 py-4 text-xs text-muted-foreground text-center">Empty directory</div>
+              <div className="px-2 py-4 text-xs text-muted-foreground text-center">{t("sidebar.emptyDirectory")}</div>
             ) : (
               entries.map((entry) => (
                 <button
@@ -384,7 +389,7 @@ function DirectoryPicker({ value, onChange }: { value: string; onChange: (path: 
             size="sm"
             onClick={() => handleSelect(browsePath)}
           >
-            Select
+            {t("common.select")}
           </Button>
         </div>
       </PopoverContent>

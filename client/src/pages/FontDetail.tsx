@@ -1,7 +1,8 @@
 import { useFont, useToggleFavorite } from "@/hooks/use-fonts";
 import { Sidebar } from "@/components/Sidebar";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Heart, Download, Info, Type, Code, Share2, Plus, Globe, Settings, Database, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,10 +12,12 @@ import { useCollections, useAddFontToCollection } from "@/hooks/use-collections"
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type FontFace, type FontFile } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 type FontFaceWithFile = FontFace & { file: FontFile };
 
 export default function FontDetail() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/fonts/:family");
   const familyName = decodeURIComponent(params?.family || "");
   const { data: font, isLoading } = useFont(familyName);
@@ -23,21 +26,22 @@ export default function FontDetail() {
   const { data: collections } = useCollections();
   const { toast } = useToast();
 
-  const [previewText, setPreviewText] = useState("A wizard's job is to vex chumps quickly in fog.");
+  const [customPreview, setCustomPreview] = useState("");
+  const previewText = customPreview.trim() ? customPreview : t("fontDetail.previewDefault");
   const [fontSize, setFontSize] = useState([64]);
 
   const handleToggleFavorite = () => {
     toggleFavorite({ targetType: "family", targetId: familyName }, {
       onSuccess: () => {
-        toast({ title: "Updated favorites" });
+        toast({ title: t("fontDetail.updatedFavorites") });
       }
     });
   };
 
-  const handleAddToCollection = (collectionId: string) => {
+  const handleAddToCollection = (collectionId: string, collectionName: string) => {
     addToCollection({ collectionId, targetType: "family", targetId: familyName }, {
       onSuccess: () => {
-        toast({ title: "Added to collection" });
+        toast({ title: t("fontCard.addedToCollection", { family: familyName, name: collectionName }) });
       }
     });
   };
@@ -85,44 +89,54 @@ export default function FontDetail() {
         {/* Detail Header */}
         <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl px-6 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+            <Link 
+              href="/" 
+              className="p-2 -ml-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+              title={t("fontDetail.backToList")}
+            >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <h1 className="text-xl font-bold font-display">{font.family}</h1>
             <span className="px-2 py-0.5 rounded-full bg-secondary text-xs text-muted-foreground">
-              {font.faces.length} styles
+              {t("fontDetail.stylesCount", { count: font.faces.length })}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleToggleFavorite}>
               <Heart className={cn("w-4 h-4 mr-2", font.isFavorite && "fill-current")} />
-              {font.isFavorite ? "Favorited" : "Favorite"}
+              {font.isFavorite ? t("fontDetail.favorited") : t("fontDetail.favorite")}
             </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add to Collection
+                  {t("fontDetail.addToCollectionBtn")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {collections?.map(col => (
-                  <DropdownMenuItem key={col.id} onClick={() => handleAddToCollection(col.id)}>
-                    {col.name}
+                {collections?.map((col: any) => (
+                  <DropdownMenuItem key={col.id} onClick={() => handleAddToCollection(col.id, col.name)}>
+                    {t("fontCard.addToCollection", { name: col.name })}
                   </DropdownMenuItem>
                 ))}
                 {(!collections || collections.length === 0) && (
-                  <DropdownMenuItem disabled>No collections found</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{t("fontCard.noCollections")}</DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
+            {font.faces[0] && (
+              <Button size="sm" asChild>
+                <a href={`/fonts-static/${font.faces[0].file.urlKey}/${font.faces[0].file.filename}`} download>
+                  <Download className="w-4 h-4 mr-2" />
+                  {t("fontDetail.download")}
+                </a>
+              </Button>
+            )}
+
+            <LanguageSwitcher variant="icon" />
           </div>
         </header>
 
@@ -132,19 +146,21 @@ export default function FontDetail() {
             {/* Interactive Preview Controls */}
             <div className="grid grid-cols-2 gap-8 items-end border-b border-border/50 pb-8">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Preview Text</label>
+                <label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                  {t("fontDetail.previewTextLabel")}
+                </label>
                 <input 
                   type="text" 
-                  value={previewText}
-                  onChange={(e) => setPreviewText(e.target.value)}
+                  value={customPreview}
+                  onChange={(e) => setCustomPreview(e.target.value)}
                   className="bg-secondary/50 px-4 py-2 rounded-lg text-sm w-full focus:outline-none focus:ring-1 focus:ring-primary border border-border"
-                  placeholder="Type to preview..."
+                  placeholder={t("common.previewPlaceholder")}
                 />
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-                    <label>Size</label>
+                    <label>{t("fontDetail.fontSize")}</label>
                     <span>{fontSize}px</span>
                   </div>
                   <Slider 
@@ -190,15 +206,15 @@ export default function FontDetail() {
             <TabsList className="grid grid-cols-3 w-full bg-secondary/30">
               <TabsTrigger value="info" className="text-xs">
                 <Info className="w-3.5 h-3.5 mr-1.5" />
-                Info
+                {t("fontDetail.tabInfo")}
               </TabsTrigger>
               <TabsTrigger value="download" className="text-xs">
                 <Download className="w-3.5 h-3.5 mr-1.5" />
-                Files
+                {t("fontDetail.tabFiles")}
               </TabsTrigger>
               <TabsTrigger value="code" className="text-xs">
                 <Code className="w-3.5 h-3.5 mr-1.5" />
-                Code
+                {t("fontDetail.tabCode")}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -206,28 +222,38 @@ export default function FontDetail() {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
             <TabsContent value="info" className="mt-0 space-y-8">
               <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground">About</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t("fontDetail.about")}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {font.family} is a professional typeface family designed for high-quality typography. This demo version includes multiple weights and styles for your projects.
+                  {t("fontDetail.aboutDesc", { family: font.family })}
                 </p>
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Metadata</h3>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  {t("fontDetail.metadata")}
+                </h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
-                    <span className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Family</span>
+                    <span className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                      {t("fontDetail.family")}
+                    </span>
                     <span className="text-sm font-medium">{font.family}</span>
                   </div>
                   <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
-                    <span className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Styles</span>
-                    <span className="text-sm font-medium">{font.faces.length} total</span>
+                    <span className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                      {t("fontDetail.styles")}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {t("fontDetail.totalStyles", { count: font.faces.length })}
+                    </span>
                   </div>
                 </div>
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Category</h3>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  {t("fontDetail.category")}
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   <span className="px-2.5 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium">Sans Serif</span>
                   <span className="px-2.5 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium">Variable</span>
@@ -236,7 +262,7 @@ export default function FontDetail() {
             </TabsContent>
 
             <TabsContent value="download" className="mt-0 space-y-4">
-              <h3 className="text-sm font-semibold mb-4">Font Files</h3>
+              <h3 className="text-sm font-semibold mb-4">{t("fontDetail.fontFiles")}</h3>
               <div className="space-y-2">
                 {font.faces.map((face: FontFaceWithFile) => (
                   <div key={face.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/10 group hover:bg-secondary/20 transition-colors">
@@ -256,12 +282,14 @@ export default function FontDetail() {
 
             <TabsContent value="code" className="mt-0 space-y-6">
               <section className="space-y-3">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Web Integration</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  {t("fontDetail.webIntegration")}
+                </h4>
                 <div className="relative">
                   <pre className="p-4 rounded-lg bg-black text-[11px] font-mono text-muted-foreground overflow-x-auto border border-border">
                     {`@font-face {
   font-family: '${font.family}';
-  src: url('/fonts/${font.faces[0]?.file.filename}') format('woff2');
+  src: url('/fonts-static/${font.faces[0]?.file.urlKey}/${font.faces[0]?.file.filename}');
   font-weight: normal;
   font-style: normal;
 }`}
@@ -273,7 +301,9 @@ export default function FontDetail() {
               </section>
 
               <section className="space-y-3">
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">CSS Usage</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  {t("fontDetail.cssUsage")}
+                </h4>
                 <div className="relative">
                   <pre className="p-4 rounded-lg bg-black text-[11px] font-mono text-muted-foreground border border-border">
                     {`body {
@@ -288,12 +318,18 @@ export default function FontDetail() {
           <div className="p-6 border-t border-border mt-auto flex flex-col gap-4">
             <div className="flex items-center gap-2 px-1">
               <Globe className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">Open Font License</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                {t("fontDetail.licenseTitle")}
+              </span>
             </div>
-            <Button className="w-full h-11" size="lg">
-              <Download className="w-4 h-4 mr-2" />
-              Download Family
-            </Button>
+            {font.faces[0] && (
+              <Button className="w-full h-11" size="lg" asChild>
+                <a href={`/fonts-static/${font.faces[0].file.urlKey}/${font.faces[0].file.filename}`} download>
+                  <Download className="w-4 h-4 mr-2" />
+                  {t("fontDetail.downloadFamily")}
+                </a>
+              </Button>
+            )}
           </div>
         </Tabs>
       </aside>

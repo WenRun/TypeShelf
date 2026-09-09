@@ -1,27 +1,24 @@
 import { Sidebar } from "@/components/Sidebar";
 import { FontCard } from "@/components/FontCard";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useFonts, useRescanFonts } from "@/hooks/use-fonts";
-import { useCollections, useRemoveFontFromCollection } from "@/hooks/use-collections";
-import { Search, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { useRemoveFontFromCollection } from "@/hooks/use-collections";
+import { Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
-  const [previewText, setPreviewText] = useState("The quick brown fox jumps over the lazy dog");
+  const [customPreview, setCustomPreview] = useState("");
   const [location] = useLocation();
-  const [previewSize, setPreviewSize] = useState(32);
   const { toast } = useToast();
+  
+  const previewText = customPreview.trim() ? customPreview : t("common.previewDefault");
   
   const isFavorites = location === "/favorites";
   const categoryMatch = location.match(/\/categories\/([^\/]+)/);
@@ -47,7 +44,7 @@ export default function Home() {
       targetId: family 
     }, {
       onSuccess: () => {
-        toast({ title: `Removed ${family} from collection` });
+        toast({ title: t("home.removedFromCollection", { family }) });
       }
     });
   };
@@ -63,7 +60,7 @@ export default function Home() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               className="pl-10 bg-secondary/50 border-transparent focus:bg-background transition-all" 
-              placeholder="Search fonts..." 
+              placeholder={t("common.searchPlaceholder")} 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -72,10 +69,10 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
                <Input 
-                 value={previewText}
-                 onChange={(e) => setPreviewText(e.target.value)}
+                 value={customPreview}
+                 onChange={(e) => setCustomPreview(e.target.value)}
                  className="w-64 h-9 bg-transparent border-border hover:border-primary/50 focus:border-primary transition-colors text-sm"
-                 placeholder="Type something to preview..."
+                 placeholder={t("common.previewPlaceholder")}
                />
             </div>
 
@@ -85,9 +82,12 @@ export default function Home() {
               onClick={() => rescan()}
               disabled={isRescanPending}
               className="relative"
+              title={t("home.rescan")}
             >
               <RefreshCw className={`w-4 h-4 ${isRescanPending ? "animate-spin" : ""}`} />
             </Button>
+
+            <LanguageSwitcher variant="icon" />
           </div>
         </header>
 
@@ -103,28 +103,28 @@ export default function Home() {
             <>
               <div className="flex items-baseline justify-between mb-6">
                 <h2 className="text-xl font-medium text-foreground">
-                  {isFavorites ? "Favorites" : 
-                   categoryMatch ? "Folder Fonts" : 
-                   collectionMatch ? "Collection" : "All Fonts"}
+                  {isFavorites ? t("home.favoritesTitle") : 
+                   categoryMatch ? t("home.folderFontsTitle") : 
+                   collectionMatch ? t("home.collectionTitle") : t("home.allFontsTitle")}
                   <span className="ml-3 text-sm text-muted-foreground font-normal">
-                    {data?.total || 0} families found
+                    {t("home.familiesFound", { count: data?.total || 0 })}
                   </span>
                 </h2>
               </div>
               
-              {data?.items.length === 0 ? (
+              {(!data?.items || data.items.length === 0) ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
                     <Search className="w-8 h-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-medium">No fonts found</h3>
+                  <h3 className="text-lg font-medium">{t("home.noFontsFound")}</h3>
                   <p className="text-muted-foreground mt-2 max-w-sm">
-                    Try adjusting your search or add some font folders in the sidebar.
+                    {t("home.noFontsTip")}
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
-                  {data?.items.map((item) => (
+                  {data?.items.map((item: any) => (
                     <FontCard 
                       key={item.family}
                       family={item.family}

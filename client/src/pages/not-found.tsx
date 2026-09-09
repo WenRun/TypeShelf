@@ -1,7 +1,10 @@
 import { Link } from "wouter";
 import { AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function NotFound() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground">
       <div className="max-w-md text-center space-y-6 p-8">
@@ -12,15 +15,15 @@ export default function NotFound() {
         </div>
         
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold font-display">404</h1>
-          <p className="text-xl text-muted-foreground">Page not found</p>
+          <h1 className="text-4xl font-bold font-display">{t("notFound.title")}</h1>
+          <p className="text-xl text-muted-foreground">{t("notFound.pageNotFound")}</p>
           <p className="text-sm text-muted-foreground/60">
-            The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+            {t("notFound.description")}
           </p>
         </div>
 
         <Link href="/" className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-          Return Home
+          {t("notFound.returnHome")}
         </Link>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { type FontFace, type FontFile } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Heart, Plus } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useToggleFavorite } from "@/hooks/use-fonts";
 import { 
   DropdownMenu, 
@@ -18,14 +19,18 @@ interface FontCardProps {
   faces: (FontFace & { file: FontFile })[];
   previewText?: string;
   isFavorite?: boolean;
+  onDeleteFromCollection?: () => void;
 }
 
-export function FontCard({ family, faces, previewText = "The quick brown fox", isFavorite, onDeleteFromCollection }: FontCardProps & { onDeleteFromCollection?: () => void }) {
+export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromCollection }: FontCardProps) {
+  const { t } = useTranslation();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const { data: collections } = useCollections();
   const { mutate: addToCollection } = useAddFontToCollection();
   const { toast } = useToast();
   
+  const displayText = previewText || t("common.previewDefault");
+
   // Pick a "Regular" face for preview, or the first one available
   const previewFace = useMemo(() => {
     return faces.find(f => f.subfamily === "Regular") || faces[0];
@@ -56,7 +61,7 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
 
   const [open, setOpen] = useState(false);
   
-  const handleAddToCollection = (collectionId: string, e: React.MouseEvent) => {
+  const handleAddToCollection = (collectionId: string, collectionName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addToCollection({ 
@@ -65,7 +70,7 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
       targetId: family 
     }, {
       onSuccess: () => {
-        toast({ title: `Added ${family} to collection` });
+        toast({ title: t("fontCard.addedToCollection", { family, name: collectionName }) });
         setOpen(false);
       }
     });
@@ -85,7 +90,7 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
             <button 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteFromCollection(); }}
               className="p-2 rounded-lg bg-black/40 text-white/70 hover:bg-destructive hover:text-white backdrop-blur-md transition-colors"
-              title="Remove from collection"
+              title={t("fontCard.removeFromCollection")}
             >
               <Plus className="w-4 h-4 rotate-45" />
             </button>
@@ -95,18 +100,19 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
                 <button 
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   className="p-2 rounded-lg bg-black/40 text-white/70 hover:bg-black/60 hover:text-white backdrop-blur-md transition-colors"
+                  title={t("fontCard.addToCollection", { name: "" }).trim()}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {collections?.map(col => (
-                  <DropdownMenuItem key={col.id} onClick={(e) => handleAddToCollection(col.id, e as any)}>
-                    Add to {col.name}
+                  <DropdownMenuItem key={col.id} onClick={(e) => handleAddToCollection(col.id, col.name, e as any)}>
+                    {t("fontCard.addToCollection", { name: col.name })}
                   </DropdownMenuItem>
                 ))}
                 {(!collections || collections.length === 0) && (
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground">No collections</div>
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("fontCard.noCollections")}</div>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -120,6 +126,7 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
                 ? "bg-primary/20 text-primary hover:bg-primary/30" 
                 : "bg-black/40 text-white/70 hover:bg-black/60 hover:text-white"
             )}
+            title={isFavorite ? t("fontCard.favorited") : t("fontCard.favorite")}
           >
             <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
           </button>
@@ -136,7 +143,9 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
         <div className="flex justify-between items-start mb-6">
           <div>
             <h3 className="font-semibold text-lg text-foreground tracking-tight">{family}</h3>
-            <p className="text-xs text-muted-foreground mt-1">{faces.length} styles</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("fontCard.stylesCount", { count: faces.length })}
+            </p>
           </div>
         </div>
 
@@ -146,7 +155,7 @@ export function FontCard({ family, faces, previewText = "The quick brown fox", i
             className="text-3xl text-center text-foreground/90 break-words w-full line-clamp-3"
             style={{ fontFamily: `'${fontStyleId}', sans-serif` }}
           >
-            {previewText}
+            {displayText}
           </p>
         </div>
 
