@@ -63,7 +63,9 @@
     "allTags": "全部标签",
     "tagFontsTitle": "标签字体",
     "filterByTag": "按标签筛选",
-    "clearTagFilter": "清除标签筛选"
+    "clearTagFilter": "清除标签筛选",
+    "multiTagsSelected": "已选 {{count}} 个标签 (同时满足)",
+    "clearAllTags": "清空标签"
   },
   "fontCard": {
     "stylesCount": "{{count}} 种样式",
@@ -105,6 +107,8 @@
     "relativePath": "文件相对路径",
     "fileNameCopied": "文件名称已复制",
     "pathCopied": "相对路径已复制",
+    "clickToCopy": "点击复制内容",
+    "codeCopied": "代码已复制",
     "fontFilesAndPaths": "字体文件与路径 ({{count}})",
     "copy": "复制",
     "tags": "分类与标签",
@@ -117,6 +121,7 @@
     "reanalyzeTags": "智能规则重新识别",
     "reanalyzed": "已完成智能标签重新识别",
     "ruleSource": "规则识别",
+    "tagSourceLegend": "标签来源",
     "userSource": "手动添加",
     "deleteTag": "移除此标签",
     "aiTag": "AI 智能分析",
@@ -134,7 +139,8 @@
     "showSystemPresets": "查看通用基础分类",
     "hideSystemPresets": "收起通用基础分类",
     "allAiSuggestionsAdded": "AI 专属推荐分类已全部添加",
-    "clickAiHint": "可点击上方「AI智能分析」生成专属候选"
+    "clickAiHint": "可点击上方「AI智能分析」生成专属候选",
+    "copyFailed": "复制失败"
   },
   "settings": {
     "title": "设置",

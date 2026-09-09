@@ -63,7 +63,9 @@
     "allTags": "All Tags",
     "tagFontsTitle": "Tagged Fonts",
     "filterByTag": "Filter by Tag",
-    "clearTagFilter": "Clear Tag Filter"
+    "clearTagFilter": "Clear Tag Filter",
+    "multiTagsSelected": "{{count}} tags selected (AND)",
+    "clearAllTags": "Clear tags"
   },
   "fontCard": {
     "stylesCount": "{{count}} styles",
@@ -105,6 +107,8 @@
     "relativePath": "Relative Path",
     "fileNameCopied": "File name copied",
     "pathCopied": "Relative path copied",
+    "clickToCopy": "Click to copy",
+    "codeCopied": "Code copied",
     "fontFilesAndPaths": "Files & Paths ({{count}})",
     "copy": "Copy",
     "tags": "Categories & Tags",
@@ -117,6 +121,7 @@
     "reanalyzeTags": "Re-analyze by Rules",
     "reanalyzed": "Smart tags re-analyzed",
     "ruleSource": "Rule",
+    "tagSourceLegend": "Tag Source",
     "userSource": "Custom",
     "deleteTag": "Remove tag",
     "aiTag": "AI Analysis",
@@ -134,7 +139,8 @@
     "showSystemPresets": "Show universal presets",
     "hideSystemPresets": "Hide universal presets",
     "allAiSuggestionsAdded": "All AI tailored suggestions added",
-    "clickAiHint": "Click \"AI Smart Analysis\" above for tailored tags"
+    "clickAiHint": "Click \"AI Smart Analysis\" above for tailored tags",
+    "copyFailed": "Failed to copy"
   },
   "settings": {
     "title": "Settings",

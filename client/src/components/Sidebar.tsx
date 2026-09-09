@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 import { 
   Type, 
@@ -31,6 +31,13 @@ import { useTranslation } from "react-i18next";
 export function Sidebar() {
   const { t } = useTranslation();
   const [location] = useLocation();
+  const searchString = useSearch();
+  const searchParams = useMemo(() => new URLSearchParams(searchString), [searchString]);
+  const queryTagIds = useMemo(() => {
+    const raw = searchParams.get("tags") || searchParams.get("tagIds");
+    if (!raw) return [];
+    return raw.split(",").map(s => s.trim()).filter(Boolean);
+  }, [searchParams]);
   const { data: collections } = useCollections();
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
@@ -122,7 +129,7 @@ export function Sidebar() {
                 href={`/tags/${tag.id}`}
                 icon={<TagIcon className="w-4 h-4" />}
                 label={tag.name}
-                active={location === `/tags/${tag.id}`}
+                active={location === `/tags/${tag.id}` || queryTagIds.includes(tag.id)}
                 count={tag.count}
               />
             ))}

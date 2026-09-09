@@ -7,6 +7,7 @@ export interface FontFilters {
   categoryId?: string;
   collectionId?: string;
   tagId?: string;
+  tagIds?: string[];
   favorites?: string;
   sort?: string;
   pageSize?: number;
@@ -21,13 +22,20 @@ export interface FontPageResult {
 export function useInfiniteFonts(filters?: FontFilters) {
   const pageSize = filters?.pageSize || 50;
   return useInfiniteQuery<FontPageResult>({
-    queryKey: ["/api/fonts", "infinite", filters],
+    queryKey: ["/api/fonts", "infinite", {
+      ...filters,
+      tagIds: filters?.tagIds ? [...filters.tagIds].sort() : undefined
+    }],
     queryFn: async ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
       if (filters?.q) params.append("q", filters.q);
       if (filters?.categoryId) params.append("categoryId", filters.categoryId);
       if (filters?.collectionId) params.append("collectionId", filters.collectionId);
-      if (filters?.tagId) params.append("tagId", filters.tagId);
+      if (filters?.tagIds && filters.tagIds.length > 0) {
+        params.append("tagIds", filters.tagIds.join(","));
+      } else if (filters?.tagId) {
+        params.append("tagId", filters.tagId);
+      }
       if (filters?.favorites) params.append("favorites", filters.favorites);
       if (filters?.sort) params.append("sort", filters.sort);
       params.append("page", String(pageParam));
@@ -52,13 +60,20 @@ export function useInfiniteFonts(filters?: FontFilters) {
 // GET /api/fonts (Classic single-page query)
 export function useFonts(filters?: FontFilters & { page?: number }) {
   return useQuery<FontPageResult>({
-    queryKey: ["/api/fonts", "single", filters],
+    queryKey: ["/api/fonts", "single", {
+      ...filters,
+      tagIds: filters?.tagIds ? [...filters.tagIds].sort() : undefined
+    }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.q) params.append("q", filters.q);
       if (filters?.categoryId) params.append("categoryId", filters.categoryId);
       if (filters?.collectionId) params.append("collectionId", filters.collectionId);
-      if (filters?.tagId) params.append("tagId", filters.tagId);
+      if (filters?.tagIds && filters.tagIds.length > 0) {
+        params.append("tagIds", filters.tagIds.join(","));
+      } else if (filters?.tagId) {
+        params.append("tagId", filters.tagId);
+      }
       if (filters?.favorites) params.append("favorites", filters.favorites);
       if (filters?.sort) params.append("sort", filters.sort);
       if (filters?.page) params.append("page", String(filters.page));
@@ -108,9 +123,15 @@ export function useToggleFavorite() {
   return useMutation({
     mutationFn: async (data: InsertFavorite) => {
       const res = await apiRequest("POST", "/api/favorites/toggle", data);
-      return res.json();
+      return res.json() as Promise<{ favorite?: any; isFavorite: boolean }>;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      if (variables.targetType === "family") {
+        queryClient.setQueryData(
+          ["/api/fonts", "detail", variables.targetId],
+          (old: any) => (old ? { ...old, isFavorite: data.isFavorite } : old)
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/fonts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
     },
