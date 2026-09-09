@@ -7,7 +7,7 @@ import * as path from "path";
 import * as chokidar from "chokidar";
 import * as fs from "fs";
 import { seed } from "./seed";
-import { insertCategorySchema, insertCollectionSchema, insertCollectionItemSchema, insertFavoriteSchema, insertAiSettingsSchema, type AiSettings, DEFAULT_AI_SYSTEM_PROMPT } from "@shared/schema";
+import { insertCollectionSchema, insertCollectionItemSchema, insertFavoriteSchema, insertAiSettingsSchema, type AiSettings, DEFAULT_AI_SYSTEM_PROMPT } from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,28 +16,6 @@ export async function registerRoutes(
   // Seed data
   await seed();
   
-  // === Categories ===
-  app.get("/api/categories", async (req, res) => {
-    const cats = await storage.getCategories();
-    res.json(cats);
-  });
-
-  app.post("/api/categories", async (req, res) => {
-    try {
-      const input = insertCategorySchema.parse(req.body);
-      const cat = await storage.createCategory(input);
-      scanner.scanCategory(cat.id, cat.path).then(() => storage.reload());
-      res.status(201).json(cat);
-    } catch (err) {
-       res.status(400).json({ message: "Invalid input" });
-    }
-  });
-
-  app.delete("/api/categories/:id", async (req, res) => {
-    await storage.deleteCategory(req.params.id);
-    res.status(204).send();
-  });
-
   // === Collections ===
   app.get("/api/collections", async (req, res) => {
     const cols = await storage.getCollections();
@@ -142,7 +120,6 @@ export async function registerRoutes(
 
       const result = await storage.searchFonts({
           q: q.q as string,
-          categoryId: q.categoryId as string,
           collectionId: q.collectionId as string,
           tagId: q.tagId as string,
           tagIds,
@@ -461,69 +438,6 @@ export async function registerRoutes(
     res.json({ message: "Storage reloaded" });
   });
 
-  // === Directory Browser ===
-  app.get("/api/browse", async (req, res) => {
-    let resolved = "";
-    const queryPath = (req.query.path as string)?.trim();
-
-    if (queryPath) {
-      const candidate = path.resolve(queryPath);
-      if (fs.existsSync(candidate)) {
-        try {
-          if (fs.statSync(candidate).isDirectory()) {
-            resolved = candidate;
-          }
-        } catch (e) {}
-      }
-    }
-
-    if (!resolved) {
-      const candidates = [
-        path.resolve("fonts"),
-        "/app/fonts",
-        path.resolve("."),
-        "/app",
-        process.env.HOME || "",
-        process.platform === "win32" ? "C:\\" : "/"
-      ];
-
-      for (const cand of candidates) {
-        if (cand && fs.existsSync(cand)) {
-          try {
-            const stat = fs.statSync(cand);
-            if (stat.isDirectory()) {
-              resolved = cand;
-              break;
-            }
-          } catch (e) {}
-        }
-      }
-    }
-
-    if (!resolved || !fs.existsSync(resolved)) {
-      return res.status(400).json({ message: "Path does not exist" });
-    }
-
-    try {
-      const entries = fs.readdirSync(resolved, { withFileTypes: true });
-      const directories = entries
-        .filter(e => e.isDirectory() && !e.name.startsWith("."))
-        .map(e => ({ name: e.name, path: path.join(resolved, e.name) }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      const parsed = path.parse(resolved);
-      const isRoot = resolved === parsed.root;
-
-      res.json({
-        entries: directories,
-        currentPath: resolved,
-        parentPath: isRoot ? null : path.dirname(resolved),
-      });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
   // === Static Serving ===
   app.get('/fonts-static/:urlKey/:filename', async (req, res) => {
     const file = await storage.getFontFileByUrlKey(req.params.urlKey);
@@ -540,21 +454,18 @@ export async function registerRoutes(
   scanner.scanAll().then(() => storage.reload());
 
   // Watcher Setup
-  const categories = await storage.getCategories();
-  const paths = categories.filter(c => c.status === 'ok' && fs.existsSync(c.path)).map(c => c.path);
-  if (paths.length > 0) {
-      const watcher = chokidar.watch(paths, { ignored: /(^|[\/\\])\../, persistent: true });
-      watcher.on('add', path => {
-          const cat = categories.find(c => path.startsWith(c.path));
-          if (cat) scanner.processFile(path, cat.id, cat.path);
-      });
-      watcher.on('change', path => {
-          const cat = categories.find(c => path.startsWith(c.path));
-          if (cat) scanner.processFile(path, cat.id, cat.path);
-      });
-      watcher.on('unlink', async path => {
-          await storage.deleteFontFileByPath(path);
-      });
+  const fontsDir = path.resolve("fonts");
+  if (fs.existsSync(fontsDir)) {
+    const watcher = chokidar.watch(fontsDir, { ignored: /(^|[\/\\])\../, persistent: true });
+    watcher.on("add", filePath => {
+      scanner.processFile(filePath, fontsDir);
+    });
+    watcher.on("change", filePath => {
+      scanner.processFile(filePath, fontsDir);
+    });
+    watcher.on("unlink", async filePath => {
+      await storage.deleteFontFileByPath(filePath);
+    });
   }
 
   return httpServer;

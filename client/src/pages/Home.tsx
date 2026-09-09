@@ -1,4 +1,4 @@
-﻿import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
 import { FontCard } from "@/components/FontCard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -26,7 +26,6 @@ export default function Home() {
   const previewText = customPreview.trim() ? customPreview : t("common.previewDefault");
   
   const isFavorites = location === "/favorites";
-  const categoryMatch = location.match(/\/categories\/([^\/]+)/);
   const collectionMatch = location.match(/\/collections\/([^\/]+)/);
   const tagMatch = location.match(/\/tags\/([^\/]+)/);
   const collectionId = collectionMatch ? collectionMatch[1] : undefined;
@@ -60,8 +59,6 @@ export default function Home() {
       basePath = "/favorites";
     } else if (collectionMatch) {
       basePath = `/collections/${collectionMatch[1]}`;
-    } else if (categoryMatch) {
-      basePath = `/categories/${categoryMatch[1]}`;
     }
 
     if (nextTagIds.length === 0) {
@@ -88,7 +85,6 @@ export default function Home() {
   const filters = {
     q: search,
     favorites: isFavorites ? "true" : undefined,
-    categoryId: categoryMatch ? categoryMatch[1] : undefined,
     collectionId,
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
   };
@@ -247,7 +243,6 @@ export default function Home() {
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-medium text-foreground">
                 {isFavorites ? t("home.favoritesTitle") : 
-                 categoryMatch ? t("home.folderFontsTitle") : 
                  collectionMatch ? t("home.collectionTitle") : 
                  selectedTags.length > 0 ? (
                    selectedTags.length <= 3 

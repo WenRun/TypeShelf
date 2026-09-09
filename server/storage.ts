@@ -2,8 +2,7 @@ import { cleanFontString, isCorruptedFontString } from "./font-utils";
 import * as fs from "fs";
 import * as path from "path";
 import { 
-  type Category, type InsertCategory,
-  type Collection, type InsertCollection,
+    type Collection, type InsertCollection,
   type FontFile, type InsertFontFile,
   type FontFace, type InsertFontFace,
   type Favorite, type InsertFavorite,
@@ -19,7 +18,6 @@ import { classifyFont, getTagColor, PRESET_TAGS } from "./classifier";
 
 // File paths
 const DATA_DIR = path.resolve("data");
-const CATEGORIES_FILE = path.join(DATA_DIR, "categories.json");
 const COLLECTIONS_FILE = path.join(DATA_DIR, "collections.json");
 const FONT_FILES_FILE = path.join(DATA_DIR, "font_files.json");
 const FONT_FACES_FILE = path.join(DATA_DIR, "font_faces.json");
@@ -31,11 +29,6 @@ const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const AI_SUGGESTIONS_FILE = path.join(DATA_DIR, "ai_suggestions.json");
 
 export interface IStorage {
-  getCategories(): Promise<(Category & { count: number })[]>;
-  createCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(id: string, updates: Partial<Category>): Promise<Category>;
-  deleteCategory(id: string): Promise<void>;
-  getCategory(id: string): Promise<Category | undefined>;
 
   getCollections(): Promise<(Collection & { count: number })[]>;
   createCollection(collection: InsertCollection): Promise<Collection>;
@@ -51,7 +44,7 @@ export interface IStorage {
   toggleFavorite(favorite: InsertFavorite): Promise<{ favorite?: Favorite, isFavorite: boolean }>;
 
   createFontFile(file: InsertFontFile): Promise<FontFile>;
-  getFontFiles(categoryId?: string): Promise<FontFile[]>;
+  getFontFiles(): Promise<FontFile[]>;
   getFontFileByPath(fullPath: string): Promise<FontFile | undefined>;
   getFontFileByUrlKey(urlKey: string): Promise<FontFile | undefined>;
   createFontFace(face: InsertFontFace): Promise<FontFace>;
@@ -77,8 +70,7 @@ export interface IStorage {
 }
 
 export class JsonStorage implements IStorage {
-  private categories: Category[] = [];
-  private collections: Collection[] = [];
+    private collections: Collection[] = [];
   private fontFiles: FontFile[] = [];
   private fontFaces: FontFace[] = [];
   private favorites: Favorite[] = [];
@@ -102,8 +94,7 @@ export class JsonStorage implements IStorage {
   }
 
   private load() {
-    this.categories = this.readJson(CATEGORIES_FILE, []);
-    this.collections = this.readJson(COLLECTIONS_FILE, []);
+        this.collections = this.readJson(COLLECTIONS_FILE, []);
     this.fontFiles = this.readJson(FONT_FILES_FILE, []);
     this.fontFaces = this.readJson(FONT_FACES_FILE, []).map((f: any) => {
       let family = cleanFontString(f.family) || 'Unknown Font';
@@ -161,8 +152,7 @@ export class JsonStorage implements IStorage {
   }
 
   private save() {
-    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(this.categories, null, 2));
-    fs.writeFileSync(COLLECTIONS_FILE, JSON.stringify(this.collections, null, 2));
+        fs.writeFileSync(COLLECTIONS_FILE, JSON.stringify(this.collections, null, 2));
     fs.writeFileSync(FONT_FILES_FILE, JSON.stringify(this.fontFiles, null, 2));
     fs.writeFileSync(FONT_FACES_FILE, JSON.stringify(this.fontFaces, null, 2));
     fs.writeFileSync(FAVORITES_FILE, JSON.stringify(this.favorites, null, 2));
@@ -171,59 +161,6 @@ export class JsonStorage implements IStorage {
     fs.writeFileSync(FONT_TAGS_FILE, JSON.stringify(this.fontTags, null, 2));
     fs.writeFileSync(AI_SUGGESTIONS_FILE, JSON.stringify(this.aiSuggestions, null, 2));
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(this.aiSettings, null, 2));
-  }
-
-  // Categories
-  async getCategories(): Promise<(Category & { count: number })[]> {
-    const validFilesMap = new Map(this.fontFiles.map(f => [f.id, f]));
-    return this.categories.map(c => {
-      const catFamilies = new Set<string>();
-      for (const face of this.fontFaces) {
-        const file = face.fontFileId ? validFilesMap.get(face.fontFileId) : undefined;
-        if (file && file.categoryId === c.id) {
-          const famName = face.family || (file.filename ? file.filename.replace(/\.[^/.]+$/, '') : 'Unknown Font');
-          catFamilies.add(famName);
-        }
-      }
-      return {
-        ...c,
-        count: catFamilies.size,
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-  }
-
-  async createCategory(category: InsertCategory): Promise<Category> {
-    const created: Category = { 
-      ...category, 
-      id: crypto.randomUUID(), 
-      status: category.status || "ok",
-      lastError: category.lastError || null,
-      createdAt: new Date(), 
-      updatedAt: new Date() 
-    };
-    this.categories.push(created);
-    this.save();
-    return created;
-  }
-
-  async updateCategory(id: string, updates: Partial<Category>): Promise<Category> {
-    const idx = this.categories.findIndex(c => c.id === id);
-    if (idx === -1) throw new Error("Not found");
-    this.categories[idx] = { ...this.categories[idx], ...updates, updatedAt: new Date() };
-    this.save();
-    return this.categories[idx];
-  }
-
-  async deleteCategory(id: string): Promise<void> {
-    const fileIdsToDelete = new Set(this.fontFiles.filter(f => f.categoryId === id).map(f => f.id));
-    this.categories = this.categories.filter(c => c.id !== id);
-    this.fontFiles = this.fontFiles.filter(f => f.categoryId !== id);
-    this.fontFaces = this.fontFaces.filter(f => !fileIdsToDelete.has(f.fontFileId));
-    this.save();
-  }
-
-  async getCategory(id: string): Promise<Category | undefined> {
-    return this.categories.find(c => c.id === id);
   }
 
   // Collections
@@ -342,8 +279,7 @@ export class JsonStorage implements IStorage {
     const created: FontFile = { 
       ...file, 
       id: crypto.randomUUID(), 
-      categoryId: file.categoryId || null,
-      duplicateGroupKey: file.duplicateGroupKey || null,
+            duplicateGroupKey: file.duplicateGroupKey || null,
       createdAt: new Date(), 
       updatedAt: new Date() 
     };
@@ -352,10 +288,7 @@ export class JsonStorage implements IStorage {
     return created;
   }
 
-  async getFontFiles(categoryId?: string): Promise<FontFile[]> {
-    if (categoryId) {
-      return this.fontFiles.filter(f => f.categoryId === categoryId);
-    }
+  async getFontFiles(): Promise<FontFile[]> {
     return this.fontFiles;
   }
 
@@ -441,10 +374,7 @@ export class JsonStorage implements IStorage {
       }
     }
 
-    if (params.categoryId) {
-      results = results.filter(r => r.file.categoryId === params.categoryId);
-    }
-
+    
     // Tag filtering: supports single tagId or multiple tagIds (AND / intersection mode)
     const targetTagIds: string[] = (Array.isArray(params.tagIds) && params.tagIds.length > 0)
       ? params.tagIds.filter(Boolean)
@@ -764,8 +694,7 @@ export class JsonStorage implements IStorage {
     return {
       version: "1.0.0",
       exportedAt: new Date().toISOString(),
-      categories: this.categories,
-      collections: this.collections,
+            collections: this.collections,
       collectionItems: this.collectionItems,
       fontFiles: this.fontFiles,
       fontFaces: this.fontFaces,

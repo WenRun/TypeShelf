@@ -1,19 +1,9 @@
-import { pgTable, text, serial, integer, boolean, timestamp, uuid, bigint } from "drizzle-orm/pg-core";
+﻿import { pgTable, text, serial, integer, boolean, timestamp, uuid, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
 // === TABLE DEFINITIONS ===
-
-export const categories = pgTable("categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  path: text("path").notNull(),
-  status: text("status").notNull().default("ok"), // 'ok' | 'missing' | 'error'
-  lastError: text("last_error"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 export const collections = pgTable("collections", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -26,7 +16,6 @@ export const collections = pgTable("collections", {
 
 export const fontFiles = pgTable("font_files", {
   id: uuid("id").primaryKey().defaultRandom(),
-  categoryId: uuid("category_id").references(() => categories.id, { onDelete: 'cascade' }),
   fullPath: text("full_path").notNull(),
   relPath: text("rel_path").notNull(),
   filename: text("filename").notNull(),
@@ -87,15 +76,7 @@ export const collectionItems = pgTable("collection_items", {
 
 // === RELATIONS ===
 
-export const categoriesRelations = relations(categories, ({ many }) => ({
-  fontFiles: many(fontFiles),
-}));
-
-export const fontFilesRelations = relations(fontFiles, ({ one, many }) => ({
-  category: one(categories, {
-    fields: [fontFiles.categoryId],
-    references: [categories.id],
-  }),
+export const fontFilesRelations = relations(fontFiles, ({ many }) => ({
   faces: many(fontFaces),
 }));
 
@@ -130,7 +111,6 @@ export const collectionItemsRelations = relations(collectionItems, ({ one }) => 
 
 // === ZOD SCHEMAS ===
 
-export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCollectionSchema = createInsertSchema(collections).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFontFileSchema = createInsertSchema(fontFiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFontFaceSchema = createInsertSchema(fontFaces).omit({ id: true, createdAt: true });
@@ -142,14 +122,12 @@ export const insertCollectionItemSchema = createInsertSchema(collectionItems).om
 
 // === TYPES ===
 
-export type Category = typeof categories.$inferSelect;
 export type Collection = typeof collections.$inferSelect;
 export type FontFile = typeof fontFiles.$inferSelect;
 export type FontFace = typeof fontFaces.$inferSelect;
 export type Favorite = typeof favorites.$inferSelect;
 export type CollectionItem = typeof collectionItems.$inferSelect;
 
-export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertCollection = z.infer<typeof insertCollectionSchema>;
 export type InsertFontFile = z.infer<typeof insertFontFileSchema>;
 export type InsertFontFace = z.infer<typeof insertFontFaceSchema>;
