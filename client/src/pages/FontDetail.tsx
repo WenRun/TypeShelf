@@ -4,7 +4,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Link, useRoute, useLocation } from "wouter";
 import { ToastAction } from "@/components/ui/toast";
-import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe, Copy, Tag as TagIcon, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe, Copy, Tag as TagIcon, Sparkles, X, RefreshCw, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFontTags, useAddFontTag, useRemoveFontTag, useAutoTagFont, useAiTagFont } from "@/hooks/use-tags";
 import { getTagBadgeStyle } from "@/lib/tag-styles";
@@ -171,7 +171,7 @@ export default function FontDetail() {
       document.body.removeChild(textarea);
       toast({ title: successMsg });
     } catch {
-      toast({ title: "复制失败", variant: "destructive" });
+      toast({ title: t("fontDetail.copyFailed"), variant: "destructive" });
     }
   };
 
@@ -230,6 +230,18 @@ export default function FontDetail() {
     );
   }
 
+  const firstFace = font.faces?.[0];
+  const webIntegrationCode = `@font-face {
+  font-family: '${font.family}';
+  src: url('/fonts-static/${firstFace?.file?.urlKey || ""}/${firstFace?.file?.filename || ""}');
+  font-weight: normal;
+  font-style: normal;
+}`;
+
+  const cssUsageCode = `body {
+  font-family: '${font.family}', sans-serif;
+}`;
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <Sidebar />
@@ -252,9 +264,26 @@ export default function FontDetail() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleToggleFavorite}>
-              <Heart className={cn("w-4 h-4 mr-2", font.isFavorite && "fill-current")} />
-              {font.isFavorite ? t("fontDetail.favorited") : t("fontDetail.favorite")}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleFavorite}
+              className={cn(
+                "transition-all duration-200",
+                font.isFavorite
+                  ? "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/60"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Heart
+                className={cn(
+                  "w-4 h-4 mr-2 transition-all duration-200",
+                  font.isFavorite
+                    ? "fill-rose-500 text-rose-500 scale-110"
+                    : "text-muted-foreground"
+                )}
+              />
+              <span>{font.isFavorite ? t("fontDetail.favorited") : t("fontDetail.favorite")}</span>
             </Button>
             
             <DropdownMenu>
@@ -372,13 +401,6 @@ export default function FontDetail() {
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
             <TabsContent value="info" className="mt-0 space-y-8">
               <section className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground">{t("fontDetail.about")}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {t("fontDetail.aboutDesc", { family: font.family })}
-                </p>
-              </section>
-
-              <section className="space-y-4">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                   {t("fontDetail.metadata")}
                 </h3>
@@ -482,33 +504,33 @@ export default function FontDetail() {
               </section>
 
               <section className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="space-y-2.5">
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                     <TagIcon className="w-3.5 h-3.5" />
                     {t("fontDetail.tags")}
                   </h3>
-                  <div className="flex items-center gap-1">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={handleAutoTag}
                       disabled={isAutoTagging || isAiTagging}
-                      className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      className="h-7 rounded-md border-border/70 bg-background/40 text-[11px] px-2 text-muted-foreground hover:text-foreground justify-center"
                       title={t("fontDetail.reanalyzeTags")}
                     >
-                      <Sparkles className={cn("w-3 h-3 text-primary", isAutoTagging && "animate-spin")} />
-                      <span>{t("fontDetail.reanalyzeTags")}</span>
+                      <RefreshCw className={cn("w-3 h-3 text-primary mr-1", isAutoTagging && "animate-spin")} />
+                      <span className="truncate">{t("fontDetail.reanalyzeTags")}</span>
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={handleAiTag}
                       disabled={isAutoTagging || isAiTagging}
-                      className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      className="h-7 rounded-md border-amber-500/40 bg-amber-500/5 text-[11px] px-2 text-muted-foreground hover:text-foreground justify-center hover:border-amber-500/60"
                       title={t("fontDetail.aiTag")}
                     >
-                      <Sparkles className={cn("w-3 h-3 text-amber-500", isAiTagging && "animate-spin")} />
-                      <span>{t("fontDetail.aiTag")}</span>
+                      <Sparkles className={cn("w-3 h-3 text-amber-500 mr-1", isAiTagging && "animate-spin")} />
+                      <span className="truncate">{t("fontDetail.aiTag")}</span>
                     </Button>
                   </div>
                 </div>
@@ -519,28 +541,33 @@ export default function FontDetail() {
                     <div
                       key={tag.id}
                       className={cn(
-                        "group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all shadow-xs",
+                        "group relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all shadow-xs",
                         getTagBadgeStyle(tag.color)
                       )}
                     >
-                      <span>{tag.name}</span>
+                      <span className="whitespace-nowrap">{tag.name}</span>
                       {tag.source === "rule" && (
-                        <span className="text-[10px] opacity-60 font-mono tracking-tighter">
-                          ({t("fontDetail.ruleSource")})
+                        <span className="inline-flex" title={t("fontDetail.ruleSource")}>
+                          <RefreshCw className="w-3 h-3 text-blue-500 dark:text-blue-300" />
                         </span>
                       )}
                       {tag.source === "ai" && (
-                        <span className="text-[10px] opacity-80 text-amber-500 font-mono tracking-tighter">
-                          ({t("fontDetail.aiSource")})
+                        <span className="inline-flex" title={t("fontDetail.aiSource")}>
+                          <Sparkles className="w-3 h-3 text-amber-500 dark:text-amber-300" />
+                        </span>
+                      )}
+                      {tag.source === "user" && (
+                        <span className="inline-flex" title={t("fontDetail.userSource")}>
+                          <UserPlus className="w-3 h-3 text-emerald-500 dark:text-emerald-300" />
                         </span>
                       )}
                       <button
                         type="button"
                         onClick={() => tag.tagId && handleRemoveTag(tag.tagId)}
-                        className="opacity-40 group-hover:opacity-100 hover:text-destructive hover:scale-110 transition-all ml-0.5 p-0.5 rounded cursor-pointer"
+                        className="absolute -top-1.5 -right-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm opacity-0 pointer-events-none transition-colors group-hover:opacity-100 group-hover:pointer-events-auto hover:border-destructive hover:bg-destructive hover:text-destructive-foreground focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive cursor-pointer"
                         title={t("fontDetail.deleteTag")}
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-2.5 h-2.5" />
                       </button>
                     </div>
                   ))}
@@ -551,6 +578,21 @@ export default function FontDetail() {
                   )}
                 </div>
 
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground/80">
+                  <span>{t("fontDetail.tagSourceLegend")}:</span>
+                  <span className="inline-flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3 text-blue-500 dark:text-blue-300" />
+                    {t("fontDetail.ruleSource")}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-500 dark:text-amber-300" />
+                    {t("fontDetail.aiSource")}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <UserPlus className="w-3 h-3 text-emerald-500 dark:text-emerald-300" />
+                    {t("fontDetail.userSource")}
+                  </span>
+                </div>
                 {/* AI Tailored Candidate Suggestions */}
                 {aiSuggestions.length > 0 && (
                   <div className="space-y-1.5 pt-1.5 pb-1">
@@ -651,6 +693,13 @@ export default function FontDetail() {
                   </Button>
                 </div>
               </section>
+
+              <section className="space-y-4 pt-6 border-t border-border/70">
+                <h3 className="text-sm font-semibold text-foreground">{t("fontDetail.about")}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t("fontDetail.aboutDesc", { family: font.family })}
+                </p>
+              </section>
             </TabsContent>
 
             <TabsContent value="download" className="mt-0 space-y-4">
@@ -678,16 +727,25 @@ export default function FontDetail() {
                   {t("fontDetail.webIntegration")}
                 </h4>
                 <div className="relative">
-                  <pre className="p-4 rounded-lg bg-secondary/50 text-[11px] font-mono text-foreground overflow-x-auto border border-border">
-                    {`@font-face {
-  font-family: '${font.family}';
-  src: url('/fonts-static/${font.faces[0]?.file.urlKey}/${font.faces[0]?.file.filename}');
-  font-weight: normal;
-  font-style: normal;
-}`}
+                  <pre
+                    className="p-4 rounded-lg bg-secondary/50 text-[11px] font-mono text-foreground overflow-x-auto border border-border cursor-pointer"
+                    title={t("fontDetail.clickToCopy")}
+                    onClick={() => copyToClipboard(webIntegrationCode, t("fontDetail.codeCopied"))}
+                  >
+                    {webIntegrationCode}
                   </pre>
-                  <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 text-muted-foreground">
-                    <Code className="w-3.5 h-3.5" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground"
+                    title={t("fontDetail.copy")}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      copyToClipboard(webIntegrationCode, t("fontDetail.codeCopied"));
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </section>
@@ -697,11 +755,26 @@ export default function FontDetail() {
                   {t("fontDetail.cssUsage")}
                 </h4>
                 <div className="relative">
-                  <pre className="p-4 rounded-lg bg-secondary/50 text-[11px] font-mono text-foreground border border-border">
-                    {`body {
-  font-family: '${font.family}', sans-serif;
-}`}
+                  <pre
+                    className="p-4 rounded-lg bg-secondary/50 text-[11px] font-mono text-foreground overflow-x-auto border border-border cursor-pointer"
+                    title={t("fontDetail.clickToCopy")}
+                    onClick={() => copyToClipboard(cssUsageCode, t("fontDetail.codeCopied"))}
+                  >
+                    {cssUsageCode}
                   </pre>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground"
+                    title={t("fontDetail.copy")}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      copyToClipboard(cssUsageCode, t("fontDetail.codeCopied"));
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </section>
             </TabsContent>

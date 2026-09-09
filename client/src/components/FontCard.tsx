@@ -143,19 +143,19 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
             className={cn(
               "p-2 rounded-lg backdrop-blur-md transition-colors",
               isFavorite 
-                ? "bg-primary/20 text-primary hover:bg-primary/30" 
+                ? "bg-rose-500/15 text-rose-500 hover:bg-rose-500/25" 
                 : "bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/40 shadow-sm"
             )}
             title={isFavorite ? t("fontCard.favorited") : t("fontCard.favorite")}
           >
-            <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
+            <Heart className={cn("w-4 h-4", isFavorite ? "fill-rose-500 text-rose-500" : "fill-transparent text-muted-foreground")} />
           </button>
         </div>
 
         {/* Favorite indicator always visible if favorite */}
         {isFavorite && (
           <div className="absolute top-4 right-4 opacity-100 group-hover:opacity-0 transition-opacity duration-200">
-             <Heart className="w-4 h-4 text-primary fill-primary" />
+             <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
           </div>
         )}
 
