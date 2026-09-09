@@ -1,4 +1,4 @@
-import { cleanFontString } from "./font-utils";
+import { cleanFontString, isCorruptedFontString } from "./font-utils";
 import * as fs from "fs";
 import * as path from "path";
 import { 
@@ -69,12 +69,19 @@ export class JsonStorage implements IStorage {
     this.collections = this.readJson(COLLECTIONS_FILE, []);
     this.fontFiles = this.readJson(FONT_FILES_FILE, []);
     this.fontFaces = this.readJson(FONT_FACES_FILE, []).map((f: any) => {
-      const family = cleanFontString(f.family) || 'Unknown Font';
+      let family = cleanFontString(f.family) || 'Unknown Font';
+      if (family.toLowerCase() === 'pur' || isCorruptedFontString(family)) {
+        const file = this.fontFiles.find((fl: any) => fl.id === f.fontFileId);
+        if (file && file.filename) {
+          family = file.filename.replace(/\.[^/.]+$/, '');
+        }
+      }
+      const fullName = (cleanFontString(f.fullName) && f.fullName.toLowerCase() !== 'pur') ? cleanFontString(f.fullName) : family;
       return {
         ...f,
         family,
         subfamily: cleanFontString(f.subfamily) || 'Regular',
-        fullName: cleanFontString(f.fullName) || family,
+        fullName,
         postscriptName: cleanFontString(f.postscriptName) || null,
         version: cleanFontString(f.version) || null,
       };
@@ -277,10 +284,17 @@ export class JsonStorage implements IStorage {
   }
 
   async createFontFace(face: InsertFontFace): Promise<FontFace> {
-    const family = cleanFontString(face.family) || 'Unknown Font';
+    let family = cleanFontString(face.family) || 'Unknown Font';
+    if (family.toLowerCase() === 'pur' || isCorruptedFontString(family)) {
+      const file = this.fontFiles.find((fl: any) => fl.id === face.fontFileId);
+      if (file && file.filename) {
+        family = file.filename.replace(/\.[^/.]+$/, '');
+      }
+    }
     const subfamily = cleanFontString(face.subfamily) || 'Regular';
     const postscriptName = cleanFontString(face.postscriptName) || null;
-    const fullName = cleanFontString(face.fullName) || family;
+    const rawFullName = cleanFontString(face.fullName);
+    const fullName = (rawFullName && rawFullName.toLowerCase() !== 'pur') ? rawFullName : family;
     const version = cleanFontString(face.version) || null;
 
     const created: FontFace = { 
