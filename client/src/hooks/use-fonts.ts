@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type InsertFavorite, type InsertCollectionItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -6,6 +6,7 @@ export interface FontFilters {
   q?: string;
   categoryId?: string;
   collectionId?: string;
+  tagId?: string;
   favorites?: string;
   sort?: string;
   pageSize?: number;
@@ -26,6 +27,7 @@ export function useInfiniteFonts(filters?: FontFilters) {
       if (filters?.q) params.append("q", filters.q);
       if (filters?.categoryId) params.append("categoryId", filters.categoryId);
       if (filters?.collectionId) params.append("collectionId", filters.collectionId);
+      if (filters?.tagId) params.append("tagId", filters.tagId);
       if (filters?.favorites) params.append("favorites", filters.favorites);
       if (filters?.sort) params.append("sort", filters.sort);
       params.append("page", String(pageParam));
@@ -56,6 +58,7 @@ export function useFonts(filters?: FontFilters & { page?: number }) {
       if (filters?.q) params.append("q", filters.q);
       if (filters?.categoryId) params.append("categoryId", filters.categoryId);
       if (filters?.collectionId) params.append("collectionId", filters.collectionId);
+      if (filters?.tagId) params.append("tagId", filters.tagId);
       if (filters?.favorites) params.append("favorites", filters.favorites);
       if (filters?.sort) params.append("sort", filters.sort);
       if (filters?.page) params.append("page", String(filters.page));
@@ -94,6 +97,7 @@ export function useRescanFonts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/fonts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
     },
   });
 }

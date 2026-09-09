@@ -61,6 +61,22 @@ export const favorites = pgTable("favorites", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const tags = pgTable("tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  color: text("color"), // e.g. blue, amber, emerald, pink, purple, orange, indigo, cyan, violet, slate
+  isSystem: boolean("is_system").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const fontTags = pgTable("font_tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  family: text("family").notNull(),
+  tagId: uuid("tag_id").references(() => tags.id, { onDelete: 'cascade' }),
+  source: text("source").notNull().default("user"), // 'rule' | 'user' | 'ai'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const collectionItems = pgTable("collection_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   collectionId: uuid("collection_id").references(() => collections.id, { onDelete: 'cascade' }),
@@ -94,6 +110,17 @@ export const collectionsRelations = relations(collections, ({ many }) => ({
   items: many(collectionItems),
 }));
 
+export const tagsRelations = relations(tags, ({ many }) => ({
+  fontTags: many(fontTags),
+}));
+
+export const fontTagsRelations = relations(fontTags, ({ one }) => ({
+  tag: one(tags, {
+    fields: [fontTags.tagId],
+    references: [tags.id],
+  }),
+}));
+
 export const collectionItemsRelations = relations(collectionItems, ({ one }) => ({
   collection: one(collections, {
     fields: [collectionItems.collectionId],
@@ -108,6 +135,9 @@ export const insertCollectionSchema = createInsertSchema(collections).omit({ id:
 export const insertFontFileSchema = createInsertSchema(fontFiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFontFaceSchema = createInsertSchema(fontFaces).omit({ id: true, createdAt: true });
 export const insertFavoriteSchema = createInsertSchema(favorites).omit({ id: true, createdAt: true });
+export const insertTagSchema = createInsertSchema(tags).omit({ id: true, createdAt: true });
+export const insertFontTagSchema = createInsertSchema(fontTags).omit({ id: true, createdAt: true });
+
 export const insertCollectionItemSchema = createInsertSchema(collectionItems).omit({ id: true, createdAt: true });
 
 // === TYPES ===
@@ -124,6 +154,17 @@ export type InsertCollection = z.infer<typeof insertCollectionSchema>;
 export type InsertFontFile = z.infer<typeof insertFontFileSchema>;
 export type InsertFontFace = z.infer<typeof insertFontFaceSchema>;
 export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
+export type Tag = typeof tags.$inferSelect;
+export type FontTag = typeof fontTags.$inferSelect;
+export type InsertTag = z.infer<typeof insertTagSchema>;
+export type InsertFontTag = z.infer<typeof insertFontTagSchema>;
+
+export type FontTagWithDetails = FontTag & {
+  name: string;
+  color?: string | null;
+  isSystem?: boolean | null;
+};
+
 export type InsertCollectionItem = z.infer<typeof insertCollectionItemSchema>;
 
 // Helper for type-safe API responses

@@ -3,7 +3,10 @@ import { Sidebar } from "@/components/Sidebar";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Link, useRoute } from "wouter";
-import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe, Copy } from "lucide-react";
+import { ArrowLeft, Heart, Download, Info, Code, Plus, Globe, Copy, Tag as TagIcon, Sparkles, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useFontTags, useAddFontTag, useRemoveFontTag, useAutoTagFont, useAiTagFont } from "@/hooks/use-tags";
+import { getTagBadgeStyle } from "@/lib/tag-styles";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,10 +15,13 @@ import { cn } from "@/lib/utils";
 import { useCollections, useAddFontToCollection } from "@/hooks/use-collections";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { type FontFace, type FontFile } from "@shared/schema";
+import { type FontFace, type FontFile, type FontTagWithDetails } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 
 type FontFaceWithFile = FontFace & { file: FontFile };
+
+
+
 
 export default function FontDetail() {
   const { t } = useTranslation();
@@ -26,6 +32,64 @@ export default function FontDetail() {
   const { mutate: addToCollection } = useAddFontToCollection();
   const { data: collections } = useCollections();
   const { toast } = useToast();
+
+  const { data: fontTags = [], isLoading: isLoadingTags } = useFontTags(familyName);
+  const { mutate: addFontTag, isPending: isAddingTag } = useAddFontTag(familyName);
+  const { mutate: removeFontTag } = useRemoveFontTag(familyName);
+  const { mutate: autoTag, isPending: isAutoTagging } = useAutoTagFont(familyName);
+  const { mutate: aiTag, isPending: isAiTagging } = useAiTagFont(familyName);
+
+  const handleAiTag = () => {
+    aiTag(undefined, {
+      onSuccess: (res: any) => {
+        toast({ title: res.message || t("fontDetail.aiTagSuccess") });
+      },
+      onError: (err: any) => {
+        toast({ title: err.message || "AI failed", variant: "destructive" });
+      }
+    });
+  };
+  const [newTagName, setNewTagName] = useState("");
+
+  const PRESET_SUGGESTIONS = [
+    "黑体", "宋体", "楷体", "圆体", "书法手写", "卡通可爱", "艺术海报", "等宽字体", "可变字体"
+  ];
+
+  const unassignedPresets = useMemo(() => {
+    const currentNames = new Set(fontTags.map((t: FontTagWithDetails) => t.name.toLowerCase()));
+    return PRESET_SUGGESTIONS.filter(p => !currentNames.has(p.toLowerCase()));
+  }, [fontTags]);
+
+  const handleAddTag = (name: string, source: string = "user") => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    addFontTag({ name: trimmed, source }, {
+      onSuccess: () => {
+        setNewTagName("");
+        toast({ title: t("fontDetail.tagAdded") });
+      },
+      onError: (err: any) => {
+        toast({ title: err.message || "Failed to add tag", variant: "destructive" });
+      }
+    });
+  };
+
+  const handleRemoveTag = (tagId: string) => {
+    removeFontTag(tagId, {
+      onSuccess: () => {
+        toast({ title: t("fontDetail.tagRemoved") });
+      }
+    });
+  };
+
+  const handleAutoTag = () => {
+    autoTag(undefined, {
+      onSuccess: () => {
+        toast({ title: t("fontDetail.reanalyzed") });
+      }
+    });
+  };
+
 
   const fontFiles = useMemo(() => {
     if (!font?.faces) return [];
@@ -377,12 +441,123 @@ export default function FontDetail() {
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                  {t("fontDetail.category")}
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <TagIcon className="w-3.5 h-3.5" />
+                    {t("fontDetail.tags")}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAutoTag}
+                      disabled={isAutoTagging || isAiTagging}
+                      className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      title={t("fontDetail.reanalyzeTags")}
+                    >
+                      <Sparkles className={cn("w-3 h-3 text-primary", isAutoTagging && "animate-spin")} />
+                      <span>{t("fontDetail.reanalyzeTags")}</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAiTag}
+                      disabled={isAutoTagging || isAiTagging}
+                      className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      title={t("fontDetail.aiTag")}
+                    >
+                      <Sparkles className={cn("w-3 h-3 text-amber-500", isAiTagging && "animate-spin")} />
+                      <span>{t("fontDetail.aiTag")}</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tag Badges */}
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium">Sans Serif</span>
-                  <span className="px-2.5 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium">Variable</span>
+                  {fontTags.map((tag: FontTagWithDetails) => (
+                    <div
+                      key={tag.id}
+                      className={cn(
+                        "group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all shadow-xs",
+                        getTagBadgeStyle(tag.color)
+                      )}
+                    >
+                      <span>{tag.name}</span>
+                      {tag.source === "rule" && (
+                        <span className="text-[10px] opacity-60 font-mono tracking-tighter">
+                          ({t("fontDetail.ruleSource")})
+                        </span>
+                      )}
+                      {tag.source === "ai" && (
+                        <span className="text-[10px] opacity-80 text-amber-500 font-mono tracking-tighter">
+                          ({t("fontDetail.aiSource")})
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => tag.tagId && handleRemoveTag(tag.tagId)}
+                        className="opacity-40 group-hover:opacity-100 hover:text-destructive hover:scale-110 transition-all ml-0.5 p-0.5 rounded cursor-pointer"
+                        title={t("fontDetail.deleteTag")}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {fontTags.length === 0 && !isLoadingTags && (
+                    <p className="text-xs text-muted-foreground italic py-1">
+                      {t("fontDetail.noTags")}
+                    </p>
+                  )}
+                </div>
+
+                {/* Suggested Preset Tags */}
+                {unassignedPresets.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {t("fontDetail.suggestedTags")}:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {unassignedPresets.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => handleAddTag(preset, "user")}
+                          disabled={isAddingTag}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-dashed border-border transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Custom Tag Input */}
+                <div className="flex items-center gap-2 pt-1">
+                  <Input
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTag(newTagName, "user");
+                      }
+                    }}
+                    placeholder={t("fontDetail.addCustomTag")}
+                    className="h-8 text-xs bg-secondary/30"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={!newTagName.trim() || isAddingTag}
+                    onClick={() => handleAddTag(newTagName, "user")}
+                    className="h-8 px-3 text-xs shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    {t("fontDetail.addTag")}
+                  </Button>
                 </div>
               </section>
             </TabsContent>

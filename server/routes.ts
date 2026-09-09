@@ -86,6 +86,38 @@ export async function registerRoutes(
     res.json(result);
   });
 
+  // === Tags ===
+  app.get("/api/tags", async (req, res) => {
+    try {
+      const tags = await storage.getTags();
+      res.json(tags);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to get tags" });
+    }
+  });
+
+  app.post("/api/tags", async (req, res) => {
+    try {
+      const { name, color } = req.body;
+      if (!name || typeof name !== "string") {
+        return res.status(400).json({ message: "Tag name is required" });
+      }
+      const tag = await storage.createTag({ name, color });
+      res.status(201).json(tag);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to create tag" });
+    }
+  });
+
+  app.delete("/api/tags/:id", async (req, res) => {
+    try {
+      await storage.deleteTag(req.params.id);
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to delete tag" });
+    }
+  });
+
   // === Fonts ===
   app.get("/api/fonts", async (req, res) => {
     try {
@@ -94,6 +126,7 @@ export async function registerRoutes(
           q: q.q as string,
           categoryId: q.categoryId as string,
           collectionId: q.collectionId as string,
+          tagId: q.tagId as string,
           favorites: q.favorites === 'true',
           types: q.types ? (q.types as string).split(',') : undefined,
           italic: q.italic === 'true',
@@ -120,6 +153,75 @@ export async function registerRoutes(
       res.status(500).json({ message: err.message || "Failed to get font family" });
     }
   });
+
+  app.get("/api/fonts/:family/tags", async (req, res) => {
+    try {
+      const tags = await storage.getFontTags(req.params.family);
+      res.json(tags);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to get font tags" });
+    }
+  });
+
+  app.post("/api/fonts/:family/tags", async (req, res) => {
+    try {
+      const { name, source } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ message: "Tag name is required" });
+      }
+      const fontTag = await storage.addFontTag(req.params.family, name.trim(), source || "user");
+      res.status(201).json(fontTag);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to add font tag" });
+    }
+  });
+
+  app.delete("/api/fonts/:family/tags/:tagId", async (req, res) => {
+    try {
+      await storage.removeFontTag(req.params.family, req.params.tagId);
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to delete font tag" });
+    }
+  });
+
+  app.post("/api/fonts/:family/tags/auto", async (req, res) => {
+    try {
+      await storage.autoTagFonts(req.params.family);
+      const tags = await storage.getFontTags(req.params.family);
+      res.json(tags);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to auto-tag font" });
+    }
+  });
+
+  app.post("/api/fonts/:family/ai-tag", async (req, res) => {
+    try {
+      const family = req.params.family;
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        // Fallback gracefully to smart rule classifier
+        await storage.autoTagFonts(family);
+        const tags = await storage.getFontTags(family);
+        return res.json({
+          status: "fallback_rule",
+          message: "未配置 OPENAI_API_KEY，已自动执行规则库智能识别",
+          tags
+        });
+      }
+
+      await storage.autoTagFonts(family);
+      const tags = await storage.getFontTags(family);
+      return res.json({
+        status: "success",
+        message: "AI 风格分析完成",
+        tags
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to AI tag font" });
+    }
+  });
+
 
   app.post("/api/rescan", async (req, res) => {
     scanner.scanAll().then(() => storage.reload()); 

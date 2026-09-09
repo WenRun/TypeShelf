@@ -11,8 +11,12 @@ import {
   Trash2,
   ChevronRight,
   ArrowUp,
-  Folder
+  Folder,
+  Tag as TagIcon,
+  Hash,
+  ChevronDown
 } from "lucide-react";
+import { useTags, type TagWithCount } from "@/hooks/use-tags";
 import { useCollections, useCreateCollection, useDeleteCollection } from "@/hooks/use-collections";
 import { useCategories, useCreateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
@@ -29,6 +33,18 @@ export function Sidebar() {
   const [location] = useLocation();
   const { data: collections } = useCollections();
   const { data: categories } = useCategories();
+  const { data: tags } = useTags();
+  const [showAllTags, setShowAllTags] = useState(false);
+
+  // Show tags with fonts or top presets
+  const displayTags = useMemo(() => {
+    if (!tags) return [];
+    const activeTags = tags.filter((t: TagWithCount) => t.count > 0);
+    const pool = activeTags.length > 0 ? activeTags : tags;
+    return showAllTags ? pool : pool.slice(0, 6);
+  }, [tags, showAllTags]);
+
+  const hasMoreTags = (tags?.length || 0) > 6;
 
   return (
     <aside className="w-64 h-screen border-r border-border bg-card flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
@@ -90,6 +106,38 @@ export function Sidebar() {
             ))}
             {(!categories || categories.length === 0) && (
                <p className="text-xs text-muted-foreground px-3 py-2 italic">{t("sidebar.noFolders")}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("sidebar.tags")}</h3>
+          </div>
+          <div className="space-y-0.5">
+            {displayTags.map((tag: TagWithCount) => (
+              <NavItem 
+                key={tag.id}
+                href={`/tags/${tag.id}`}
+                icon={<TagIcon className="w-4 h-4" />}
+                label={tag.name}
+                active={location === `/tags/${tag.id}`}
+                count={tag.count}
+              />
+            ))}
+            {(!tags || tags.length === 0) && (
+              <p className="text-xs text-muted-foreground px-3 py-2 italic">{t("sidebar.noTags")}</p>
+            )}
+            {hasMoreTags && (
+              <button
+                type="button"
+                onClick={() => setShowAllTags(!showAllTags)}
+                className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <ChevronDown className={cn("w-3 h-3 transition-transform", showAllTags && "rotate-180")} />
+                <span>{showAllTags ? t("sidebar.showLessTags") : t("sidebar.showMoreTags")}</span>
+              </button>
             )}
           </div>
         </div>

@@ -40,7 +40,11 @@
     "emptyDirectory": "Empty directory",
     "deleteConfirm": "Are you sure you want to delete this?",
     "collectionDeleted": "Collection deleted",
-    "folderRemoved": "Folder removed"
+    "folderRemoved": "Folder removed",
+    "tags": "Tags",
+    "noTags": "No tags",
+    "showMoreTags": "Show more",
+    "showLessTags": "Show less"
   },
   "home": {
     "allFontsTitle": "All Fonts",
@@ -55,7 +59,11 @@
     "loadedCount": "Loaded {{loaded}} / {{total}}",
     "loadingMore": "Loading more fonts...",
     "loadMore": "Load more",
-    "allLoaded": "All {{count}} fonts loaded"
+    "allLoaded": "All {{count}} fonts loaded",
+    "allTags": "All Tags",
+    "tagFontsTitle": "Tagged Fonts",
+    "filterByTag": "Filter by Tag",
+    "clearTagFilter": "Clear Tag Filter"
   },
   "fontCard": {
     "stylesCount": "{{count}} styles",
@@ -98,7 +106,23 @@
     "fileNameCopied": "File name copied",
     "pathCopied": "Relative path copied",
     "fontFilesAndPaths": "Files & Paths ({{count}})",
-    "copy": "Copy"
+    "copy": "Copy",
+    "tags": "Categories & Tags",
+    "noTags": "No tags assigned. Select from suggested or add custom tags below.",
+    "suggestedTags": "Suggested Tags",
+    "addCustomTag": "Add custom tag...",
+    "addTag": "Add",
+    "tagAdded": "Tag added successfully",
+    "tagRemoved": "Tag removed",
+    "reanalyzeTags": "Re-analyze by Rules",
+    "reanalyzed": "Smart tags re-analyzed",
+    "ruleSource": "Rule",
+    "userSource": "Custom",
+    "deleteTag": "Remove tag",
+    "aiTag": "AI Analysis",
+    "aiAnalyzing": "Analyzing with AI...",
+    "aiTagSuccess": "AI analysis completed",
+    "aiSource": "AI"
   },
   "settings": {
     "title": "Settings",

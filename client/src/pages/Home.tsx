@@ -4,7 +4,10 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInfiniteFonts, useRescanFonts } from "@/hooks/use-fonts";
 import { useRemoveFontFromCollection } from "@/hooks/use-collections";
-import { Search, RefreshCw, Loader2 } from "lucide-react";
+import { Search, RefreshCw, Loader2, Tag as TagIcon, X } from "lucide-react";
+import { useTags } from "@/hooks/use-tags";
+import { getTagBadgeStyle } from "@/lib/tag-styles";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -16,7 +19,7 @@ export default function Home() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [customPreview, setCustomPreview] = useState("");
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   
   const previewText = customPreview.trim() ? customPreview : t("common.previewDefault");
@@ -24,13 +27,19 @@ export default function Home() {
   const isFavorites = location === "/favorites";
   const categoryMatch = location.match(/\/categories\/([^\/]+)/);
   const collectionMatch = location.match(/\/collections\/([^\/]+)/);
+  const tagMatch = location.match(/\/tags\/([^\/]+)/);
   const collectionId = collectionMatch ? collectionMatch[1] : undefined;
+  const tagId = tagMatch ? tagMatch[1] : undefined;
+
+  const { data: tags } = useTags();
+  const currentTag = useMemo(() => tags?.find(t => t.id === tagId), [tags, tagId]);
   
   const filters = {
     q: search,
     favorites: isFavorites ? "true" : undefined,
     categoryId: categoryMatch ? categoryMatch[1] : undefined,
     collectionId,
+    tagId,
   };
 
   const { 
@@ -140,11 +149,60 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {/* Quick Tag Filter Bar */}
+              {tags && tags.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 custom-scrollbar no-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (tagId) setLocation("/");
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer border",
+                      !tagId
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-transparent"
+                    )}
+                  >
+                    <span>{t("home.allTags")}</span>
+                  </button>
+                  {tags.filter(t => t.count > 0).map((tItem) => {
+                    const isActive = tagId === tItem.id;
+                    return (
+                      <button
+                        key={tItem.id}
+                        type="button"
+                        onClick={() => {
+                          setLocation(isActive ? "/" : `/tags/${tItem.id}`);
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer border",
+                          isActive
+                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                            : cn("bg-secondary/40 hover:bg-secondary/80 text-foreground border-border/40", getTagBadgeStyle(tItem.color))
+                        )}
+                      >
+                        <span>{tItem.name}</span>
+                        <span className={cn(
+                          "text-[10px] px-1 py-0.2 rounded-full",
+                          isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/15 text-muted-foreground"
+                        )}>
+                          {tItem.count}
+                        </span>
+                        {isActive && <X className="w-3 h-3 ml-0.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="flex items-baseline justify-between mb-6">
                 <h2 className="text-xl font-medium text-foreground">
                   {isFavorites ? t("home.favoritesTitle") : 
                    categoryMatch ? t("home.folderFontsTitle") : 
-                   collectionMatch ? t("home.collectionTitle") : t("home.allFontsTitle")}
+                   collectionMatch ? t("home.collectionTitle") : 
+                   tagMatch ? (currentTag ? `${currentTag.name}` : t("home.tagFontsTitle")) :
+                   t("home.allFontsTitle")}
                   <span className="ml-3 text-sm text-muted-foreground font-normal">
                     {t("home.familiesFound", { count: totalCount })}
                     {allFonts.length > 0 && totalCount > allFonts.length && (
@@ -177,6 +235,7 @@ export default function Home() {
                         previewText={previewText}
                         isFavorite={item.isFavorite || isFavorites} 
                         onDeleteFromCollection={collectionId ? () => handleRemoveFromCollection(item.family) : undefined}
+                        tags={item.tags}
                       />
                     ))}
                   </div>

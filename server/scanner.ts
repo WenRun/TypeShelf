@@ -164,6 +164,11 @@ export class Scanner {
             fontIdx++;
         }
 
+        for (const f of fonts) {
+          const fam = cleanFontString(f.familyName);
+          if (fam) await storage.autoTagFonts(fam);
+        }
+
     } catch (err) {
         console.error("Error processing file", fullPath, err);
     }

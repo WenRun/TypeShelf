@@ -7,8 +7,12 @@ import {
   type FontFile, type InsertFontFile,
   type FontFace, type InsertFontFace,
   type Favorite, type InsertFavorite,
-  type CollectionItem, type InsertCollectionItem
+  type CollectionItem, type InsertCollectionItem,
+  type Tag, type InsertTag,
+  type FontTag, type InsertFontTag,
+  type FontTagWithDetails
 } from "@shared/schema";
+import { classifyFont, getTagColor, PRESET_TAGS } from "./classifier";
 
 // File paths
 const DATA_DIR = path.resolve("data");
@@ -18,6 +22,8 @@ const FONT_FILES_FILE = path.join(DATA_DIR, "font_files.json");
 const FONT_FACES_FILE = path.join(DATA_DIR, "font_faces.json");
 const FAVORITES_FILE = path.join(DATA_DIR, "favorites.json");
 const COLLECTION_ITEMS_FILE = path.join(DATA_DIR, "collection_items.json");
+const TAGS_FILE = path.join(DATA_DIR, "tags.json");
+const FONT_TAGS_FILE = path.join(DATA_DIR, "font_tags.json");
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -48,6 +54,13 @@ export interface IStorage {
   getFontFamily(family: string): Promise<any | undefined>;
   deleteFontFile(id: string): Promise<void>;
   deleteFontFileByPath(fullPath: string): Promise<void>;
+  getTags(): Promise<(Tag & { count: number })[]>;
+  createTag(tag: InsertTag): Promise<Tag>;
+  deleteTag(id: string): Promise<void>;
+  getFontTags(family: string): Promise<FontTagWithDetails[]>;
+  addFontTag(family: string, tagName: string, source?: string): Promise<FontTagWithDetails>;
+  removeFontTag(family: string, tagId: string): Promise<void>;
+  autoTagFonts(family?: string): Promise<void>;
   reload(): Promise<void>;
 }
 
@@ -58,6 +71,8 @@ export class JsonStorage implements IStorage {
   private fontFaces: FontFace[] = [];
   private favorites: Favorite[] = [];
   private collectionItems: CollectionItem[] = [];
+  private tags: Tag[] = [];
+  private fontTags: FontTag[] = [];
 
   constructor() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
@@ -88,6 +103,11 @@ export class JsonStorage implements IStorage {
     });
     this.favorites = this.readJson(FAVORITES_FILE, []);
     this.collectionItems = this.readJson(COLLECTION_ITEMS_FILE, []);
+    this.tags = this.readJson(TAGS_FILE, []);
+    this.fontTags = this.readJson(FONT_TAGS_FILE, []);
+    if (this.fontFaces.length > 0 && this.fontTags.length === 0) {
+      this.autoTagFonts();
+    }
   }
 
   private readJson(file: string, fallback: any) {
@@ -110,6 +130,8 @@ export class JsonStorage implements IStorage {
     fs.writeFileSync(FONT_FACES_FILE, JSON.stringify(this.fontFaces, null, 2));
     fs.writeFileSync(FAVORITES_FILE, JSON.stringify(this.favorites, null, 2));
     fs.writeFileSync(COLLECTION_ITEMS_FILE, JSON.stringify(this.collectionItems, null, 2));
+    fs.writeFileSync(TAGS_FILE, JSON.stringify(this.tags, null, 2));
+    fs.writeFileSync(FONT_TAGS_FILE, JSON.stringify(this.fontTags, null, 2));
   }
 
   // Categories
@@ -334,16 +356,36 @@ export class JsonStorage implements IStorage {
     })).filter(r => r.file);
 
     if (params.q) {
-      const q = String(params.q).toLowerCase().trim();
-      results = results.filter(r => 
-        (r.face?.family && r.face.family.toLowerCase().includes(q)) || 
-        (r.face?.subfamily && r.face.subfamily.toLowerCase().includes(q)) || 
-        (r.file?.filename && r.file.filename.toLowerCase().includes(q))
+      const rawQ = String(params.q).toLowerCase().trim();
+      const isTagPrefix = rawQ.startsWith("#");
+      const cleanQ = isTagPrefix ? rawQ.slice(1).trim() : rawQ;
+
+      const matchingTagIds = new Set(
+        this.tags.filter(t => t.name.toLowerCase().includes(cleanQ)).map(t => t.id)
       );
+      const matchingTagFamilies = new Set(
+        this.fontTags.filter(ft => Boolean(ft.tagId && matchingTagIds.has(ft.tagId))).map(ft => ft.family)
+      );
+
+      if (isTagPrefix) {
+        results = results.filter(r => (r.face?.family ? matchingTagFamilies.has(r.face.family) : false));
+      } else {
+        results = results.filter(r => 
+          (r.face?.family && r.face.family.toLowerCase().includes(cleanQ)) || 
+          (r.face?.subfamily && r.face.subfamily.toLowerCase().includes(cleanQ)) || 
+          (r.file?.filename && r.file.filename.toLowerCase().includes(cleanQ)) ||
+          (r.face?.family ? matchingTagFamilies.has(r.face.family) : false)
+        );
+      }
     }
 
     if (params.categoryId) {
       results = results.filter(r => r.file.categoryId === params.categoryId);
+    }
+
+    if (params.tagId) {
+      const taggedFamilies = new Set(this.fontTags.filter(ft => ft.tagId === params.tagId).map(ft => ft.family));
+      results = results.filter(r => taggedFamilies.has(r.face.family));
     }
 
     const favs = this.favorites.filter(f => f.targetType === 'family');
@@ -365,10 +407,20 @@ export class JsonStorage implements IStorage {
       grouped.get(famName)!.push({ ...face, family: famName, file });
     }
 
+    const familyTagsMap = new Map<string, { id: string; name: string; color: string | null }[]>();
+    for (const ft of this.fontTags) {
+      const tag = this.tags.find(t => t.id === ft.tagId);
+      if (tag) {
+        if (!familyTagsMap.has(ft.family)) familyTagsMap.set(ft.family, []);
+        familyTagsMap.get(ft.family)!.push({ id: tag.id, name: tag.name, color: tag.color });
+      }
+    }
+
     let families = Array.from(grouped.entries()).map(([family, faces]) => ({ 
       family, 
       faces,
-      isFavorite: favFamilies.has(family)
+      isFavorite: favFamilies.has(family),
+      tags: familyTagsMap.get(family) || []
     }));
     
     if (params.sort === 'name_asc') {
@@ -405,8 +457,168 @@ export class JsonStorage implements IStorage {
       .filter(i => i.targetType === 'family' && i.targetId === family)
       .map(i => i.collectionId);
 
-    return { family, faces, collections };
+    const tags = await this.getFontTags(family);
+
+    return { family, faces, collections, tags };
   }
+
+  // Tags
+  async getTags(): Promise<(Tag & { count: number })[]> {
+    const counts = new Map<string, number>();
+    for (const ft of this.fontTags) {
+      if (ft.tagId) {
+        counts.set(ft.tagId, (counts.get(ft.tagId) || 0) + 1);
+      }
+    }
+    return this.tags
+      .map(t => ({
+        ...t,
+        count: counts.get(t.id) || 0,
+      }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }
+
+  async createTag(tag: InsertTag): Promise<Tag> {
+    const cleanName = tag.name.trim();
+    const existing = this.tags.find(t => t.name.toLowerCase() === cleanName.toLowerCase());
+    if (existing) return existing;
+
+    const created: Tag = {
+      id: crypto.randomUUID(),
+      name: cleanName,
+      color: tag.color || getTagColor(cleanName),
+      isSystem: tag.isSystem ?? false,
+      createdAt: new Date(),
+    };
+    this.tags.push(created);
+    this.save();
+    return created;
+  }
+
+  async deleteTag(id: string): Promise<void> {
+    this.tags = this.tags.filter(t => t.id !== id);
+    this.fontTags = this.fontTags.filter(ft => ft.tagId !== id);
+    this.save();
+  }
+
+  async getFontTags(family: string): Promise<FontTagWithDetails[]> {
+    const matches = this.fontTags.filter(ft => ft.family === family);
+    return matches
+      .map(ft => {
+        const tag = this.tags.find(t => t.id === ft.tagId);
+        return {
+          ...ft,
+          name: tag ? tag.name : "未知标签",
+          color: tag ? tag.color : null,
+          isSystem: tag ? Boolean(tag.isSystem) : false,
+        };
+      })
+      .filter(t => t.name !== "未知标签");
+  }
+
+  async addFontTag(family: string, tagName: string, source: string = "user"): Promise<FontTagWithDetails> {
+    const cleanName = tagName.trim();
+    if (!cleanName) throw new Error("Tag name cannot be empty");
+
+    let tag = this.tags.find(t => t.name.toLowerCase() === cleanName.toLowerCase());
+    if (!tag) {
+      tag = {
+        id: crypto.randomUUID(),
+        name: cleanName,
+        color: getTagColor(cleanName),
+        isSystem: false,
+        createdAt: new Date(),
+      };
+      this.tags.push(tag);
+    }
+
+    let fontTag = this.fontTags.find(ft => ft.family === family && ft.tagId === tag.id);
+    if (!fontTag) {
+      fontTag = {
+        id: crypto.randomUUID(),
+        family,
+        tagId: tag.id,
+        source: source || "user",
+        createdAt: new Date(),
+      };
+      this.fontTags.push(fontTag);
+      this.save();
+    }
+
+    return {
+      ...fontTag,
+      name: tag.name,
+      color: tag.color,
+      isSystem: Boolean(tag.isSystem),
+    };
+  }
+
+  async removeFontTag(family: string, tagId: string): Promise<void> {
+    this.fontTags = this.fontTags.filter(ft => !(ft.family === family && ft.tagId === tagId));
+    this.save();
+  }
+
+  async autoTagFonts(targetFamily?: string): Promise<void> {
+    for (const preset of PRESET_TAGS) {
+      if (!this.tags.some(t => t.name === preset.name)) {
+        this.tags.push({
+          id: crypto.randomUUID(),
+          name: preset.name,
+          color: preset.color,
+          isSystem: true,
+          createdAt: new Date(),
+        });
+      }
+    }
+
+    const familiesToTag = targetFamily
+      ? [targetFamily]
+      : Array.from(new Set(this.fontFaces.map(f => f.family).filter(Boolean)));
+
+    let hasChanges = false;
+
+    for (const family of familiesToTag) {
+      const faces = this.fontFaces.filter(f => f.family === family);
+      if (faces.length === 0) continue;
+      const files = faces
+        .map(f => this.fontFiles.find(fl => fl.id === f.fontFileId))
+        .filter(Boolean) as FontFile[];
+
+      const existingFontTags = this.fontTags.filter(ft => ft.family === family);
+      const ruleTags = classifyFont(family, faces, files);
+
+      for (const rTag of ruleTags) {
+        let tag = this.tags.find(t => t.name.toLowerCase() === rTag.name.toLowerCase());
+        if (!tag) {
+          tag = {
+            id: crypto.randomUUID(),
+            name: rTag.name,
+            color: rTag.color,
+            isSystem: true,
+            createdAt: new Date(),
+          };
+          this.tags.push(tag);
+          hasChanges = true;
+        }
+
+        if (!existingFontTags.some(ft => ft.tagId === tag.id)) {
+          this.fontTags.push({
+            id: crypto.randomUUID(),
+            family,
+            tagId: tag.id,
+            source: "rule",
+            createdAt: new Date(),
+          });
+          hasChanges = true;
+        }
+      }
+    }
+
+    if (hasChanges) {
+      this.save();
+    }
+  }
+
 }
 
 export const storage = new JsonStorage();

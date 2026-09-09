@@ -1,4 +1,5 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { getTagBadgeStyle } from "@/lib/tag-styles";
 import { type FontFace, type FontFile } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Heart, Plus, FileText } from "lucide-react";
@@ -20,10 +21,12 @@ interface FontCardProps {
   previewText?: string;
   isFavorite?: boolean;
   onDeleteFromCollection?: () => void;
+  tags?: { id: string; name: string; color?: string | null }[];
 }
 
-export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromCollection }: FontCardProps) {
+export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromCollection, tags }: FontCardProps) {
   const { t } = useTranslation();
+  const [, setLocation] = useLocation();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const { data: collections } = useCollections();
   const { mutate: addToCollection } = useAddFontToCollection();
@@ -157,12 +160,37 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
         )}
 
         {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h3 className="font-semibold text-lg text-foreground tracking-tight">{family}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t("fontCard.stylesCount", { count: faces.length })}
-            </p>
+        <div className="flex justify-between items-start mb-4">
+          <div className="min-w-0 flex-1 mr-8">
+            <h3 className="font-semibold text-lg text-foreground tracking-tight truncate" title={family}>{family}</h3>
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <span className="text-xs text-muted-foreground mr-0.5">
+                {t("fontCard.stylesCount", { count: faces.length })}
+              </span>
+              {tags && tags.slice(0, 3).map((tag) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setLocation(`/tags/${tag.id}`);
+                  }}
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded font-medium border transition-colors cursor-pointer",
+                    getTagBadgeStyle(tag.color)
+                  )}
+                  title={tag.name}
+                >
+                  {tag.name}
+                </button>
+              ))}
+              {tags && tags.length > 3 && (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  +{tags.length - 3}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

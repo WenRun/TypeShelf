@@ -40,7 +40,11 @@
     "emptyDirectory": "空目录",
     "deleteConfirm": "确定要删除此项吗？",
     "collectionDeleted": "合集已删除",
-    "folderRemoved": "文件夹已移除"
+    "folderRemoved": "文件夹已移除",
+    "tags": "标签分类",
+    "noTags": "暂无标签",
+    "showMoreTags": "展开更多",
+    "showLessTags": "收起标签"
   },
   "home": {
     "allFontsTitle": "全部字体",
@@ -55,7 +59,11 @@
     "loadedCount": "已加载 {{loaded}} / {{total}}",
     "loadingMore": "正在加载更多字体...",
     "loadMore": "点击加载更多",
-    "allLoaded": "已加载全部 {{count}} 款字体"
+    "allLoaded": "已加载全部 {{count}} 款字体",
+    "allTags": "全部标签",
+    "tagFontsTitle": "标签字体",
+    "filterByTag": "按标签筛选",
+    "clearTagFilter": "清除标签筛选"
   },
   "fontCard": {
     "stylesCount": "{{count}} 种样式",
@@ -98,7 +106,23 @@
     "fileNameCopied": "文件名称已复制",
     "pathCopied": "相对路径已复制",
     "fontFilesAndPaths": "字体文件与路径 ({{count}})",
-    "copy": "复制"
+    "copy": "复制",
+    "tags": "分类与标签",
+    "noTags": "暂无标签，可从下方快捷点选或手动添加",
+    "suggestedTags": "推荐标签",
+    "addCustomTag": "添加自定义标签...",
+    "addTag": "添加",
+    "tagAdded": "标签添加成功",
+    "tagRemoved": "标签已移除",
+    "reanalyzeTags": "智能规则重新识别",
+    "reanalyzed": "已完成智能标签重新识别",
+    "ruleSource": "规则识别",
+    "userSource": "手动添加",
+    "deleteTag": "移除此标签",
+    "aiTag": "AI 智能分析",
+    "aiAnalyzing": "AI 视觉分析中...",
+    "aiTagSuccess": "AI 标签分析完成",
+    "aiSource": "AI识别"
   },
   "settings": {
     "title": "设置",
