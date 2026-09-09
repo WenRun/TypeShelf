@@ -51,7 +51,11 @@
     "noFontsFound": "No fonts found",
     "noFontsTip": "Try adjusting your search or add some font folders in the sidebar.",
     "removedFromCollection": "Removed {{family}} from collection",
-    "rescan": "Rescan font folders"
+    "rescan": "Rescan font folders",
+    "loadedCount": "Loaded {{loaded}} / {{total}}",
+    "loadingMore": "Loading more fonts...",
+    "loadMore": "Load more",
+    "allLoaded": "All {{count}} fonts loaded"
   },
   "fontCard": {
     "stylesCount": "{{count}} styles",

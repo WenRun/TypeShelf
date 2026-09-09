@@ -51,7 +51,11 @@
     "noFontsFound": "未找到相关字体",
     "noFontsTip": "请尝试更换搜索关键词，或在左侧边栏添加包含字体的文件夹。",
     "removedFromCollection": "已从合集中移除 {{family}}",
-    "rescan": "重新扫描字体文件夹"
+    "rescan": "重新扫描字体文件夹",
+    "loadedCount": "已加载 {{loaded}} / {{total}}",
+    "loadingMore": "正在加载更多字体...",
+    "loadMore": "点击加载更多",
+    "allLoaded": "已加载全部 {{count}} 款字体"
   },
   "fontCard": {
     "stylesCount": "{{count}} 种样式",

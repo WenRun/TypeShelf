@@ -2,12 +2,12 @@ import { Sidebar } from "@/components/Sidebar";
 import { FontCard } from "@/components/FontCard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { useFonts, useRescanFonts } from "@/hooks/use-fonts";
+import { useInfiniteFonts, useRescanFonts } from "@/hooks/use-fonts";
 import { useRemoveFontFromCollection } from "@/hooks/use-collections";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
@@ -33,7 +33,14 @@ export default function Home() {
     collectionId,
   };
 
-  const { data, isLoading } = useFonts(filters);
+  const { 
+    data, 
+    isLoading, 
+    isFetchingNextPage, 
+    hasNextPage, 
+    fetchNextPage 
+  } = useInfiniteFonts(filters);
+
   const { mutate: rescan, isPending: isRescanPending } = useRescanFonts();
   const { mutate: removeFromCollection } = useRemoveFontFromCollection();
 
@@ -49,6 +56,36 @@ export default function Home() {
       }
     });
   };
+
+  // Flatten all loaded font pages
+  const allFonts = useMemo(() => {
+    return data?.pages.flatMap(page => page.items) || [];
+  }, [data]);
+
+  const totalCount = data?.pages[0]?.total ?? 0;
+
+  // Infinite Scroll Trigger with IntersectionObserver
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const trigger = loadMoreRef.current;
+    if (!trigger) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    }, {
+      rootMargin: "300px",
+      threshold: 0.1,
+    });
+
+    observer.observe(trigger);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -109,12 +146,17 @@ export default function Home() {
                    categoryMatch ? t("home.folderFontsTitle") : 
                    collectionMatch ? t("home.collectionTitle") : t("home.allFontsTitle")}
                   <span className="ml-3 text-sm text-muted-foreground font-normal">
-                    {t("home.familiesFound", { count: data?.total || 0 })}
+                    {t("home.familiesFound", { count: totalCount })}
+                    {allFonts.length > 0 && totalCount > allFonts.length && (
+                      <span className="ml-1 text-xs opacity-75">
+                        ({t("home.loadedCount", { loaded: allFonts.length, total: totalCount })})
+                      </span>
+                    )}
                   </span>
                 </h2>
               </div>
               
-              {(!data?.items || data.items.length === 0) ? (
+              {allFonts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
                     <Search className="w-8 h-8 text-muted-foreground" />
@@ -125,18 +167,45 @@ export default function Home() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
-                  {data?.items.map((item: any) => (
-                    <FontCard 
-                      key={item.family}
-                      family={item.family}
-                      faces={item.faces}
-                      previewText={previewText}
-                      isFavorite={item.isFavorite || isFavorites} 
-                      onDeleteFromCollection={collectionId ? () => handleRemoveFromCollection(item.family) : undefined}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {allFonts.map((item: any) => (
+                      <FontCard 
+                        key={item.family}
+                        family={item.family}
+                        faces={item.faces}
+                        previewText={previewText}
+                        isFavorite={item.isFavorite || isFavorites} 
+                        onDeleteFromCollection={collectionId ? () => handleRemoveFromCollection(item.family) : undefined}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite Scroll Load More Sentinel & Indicator */}
+                  {hasNextPage ? (
+                    <div ref={loadMoreRef} className="py-10 flex flex-col items-center justify-center gap-3">
+                      {isFetchingNextPage ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                          <span>{t("home.loadingMore")}</span>
+                        </div>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => fetchNextPage()}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          {t("home.loadMore")}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-xs text-muted-foreground/60 border-t border-border/20 mt-8">
+                      {t("home.allLoaded", { count: totalCount })}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
