@@ -261,16 +261,24 @@ export class JsonStorage implements IStorage {
   }
 
   async createFontFace(face: InsertFontFace): Promise<FontFace> {
+    const family = (face.family ? String(face.family).replace(/\0/g, '').trim() : '') || 'Unknown Font';
+    const subfamily = (face.subfamily ? String(face.subfamily).replace(/\0/g, '').trim() : '') || 'Regular';
+    const postscriptName = face.postscriptName ? String(face.postscriptName).replace(/\0/g, '').trim() : null;
+    const fullName = face.fullName ? String(face.fullName).replace(/\0/g, '').trim() : family;
+    const version = face.version ? String(face.version).replace(/\0/g, '').trim() : null;
+
     const created: FontFace = { 
       ...face, 
+      family,
+      subfamily,
       id: crypto.randomUUID(), 
       fontFileId: face.fontFileId || null,
-      postscriptName: face.postscriptName || null,
+      postscriptName,
       weight: face.weight || null,
       italic: face.italic || false,
       stretch: face.stretch || null,
-      version: face.version || null,
-      fullName: face.fullName || null,
+      version,
+      fullName,
       createdAt: new Date() 
     };
     this.fontFaces.push(created);
@@ -296,11 +304,11 @@ export class JsonStorage implements IStorage {
     })).filter(r => r.file);
 
     if (params.q) {
-      const q = params.q.toLowerCase();
+      const q = String(params.q).toLowerCase().trim();
       results = results.filter(r => 
-        r.face.family.toLowerCase().includes(q) || 
-        r.face.subfamily.toLowerCase().includes(q) || 
-        r.file.filename.toLowerCase().includes(q)
+        (r.face?.family && r.face.family.toLowerCase().includes(q)) || 
+        (r.face?.subfamily && r.face.subfamily.toLowerCase().includes(q)) || 
+        (r.file?.filename && r.file.filename.toLowerCase().includes(q))
       );
     }
 
@@ -322,8 +330,9 @@ export class JsonStorage implements IStorage {
 
     const grouped = new Map<string, any[]>();
     for (const { face, file } of results) {
-      if (!grouped.has(face.family)) grouped.set(face.family, []);
-      grouped.get(face.family)!.push({ ...face, file });
+      const famName = face.family || (file && file.filename ? file.filename.replace(/\.[^/.]+$/, '') : 'Unknown Font');
+      if (!grouped.has(famName)) grouped.set(famName, []);
+      grouped.get(famName)!.push({ ...face, family: famName, file });
     }
 
     let families = Array.from(grouped.entries()).map(([family, faces]) => ({ 
@@ -333,7 +342,7 @@ export class JsonStorage implements IStorage {
     }));
     
     if (params.sort === 'name_asc') {
-      families.sort((a, b) => a.family.localeCompare(b.family));
+      families.sort((a, b) => (a.family || '').localeCompare(b.family || ''));
     } else {
       families.sort((a, b) => {
         const dateA = Math.max(...a.faces.map(f => {
@@ -356,7 +365,7 @@ export class JsonStorage implements IStorage {
 
   async getFontFamily(family: string): Promise<any | undefined> {
     const faces = this.fontFaces
-      .filter(f => f.family === family)
+      .filter(f => (f.family || '') === family)
       .map(face => ({ ...face, file: this.fontFiles.find(f => f.id === face.fontFileId)! }))
       .filter(r => r.file);
 

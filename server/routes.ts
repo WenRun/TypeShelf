@@ -88,27 +88,37 @@ export async function registerRoutes(
 
   // === Fonts ===
   app.get("/api/fonts", async (req, res) => {
-    const q = req.query;
-    const result = await storage.searchFonts({
-        q: q.q as string,
-        categoryId: q.categoryId as string,
-        collectionId: q.collectionId as string,
-        favorites: q.favorites === 'true',
-        types: q.types ? (q.types as string).split(',') : undefined,
-        italic: q.italic === 'true',
-        weightMin: q.weightMin ? Number(q.weightMin) : undefined,
-        weightMax: q.weightMax ? Number(q.weightMax) : undefined,
-        sort: q.sort as string,
-        limit: Number(q.pageSize || 50),
-        offset: (Number(q.page || 1) - 1) * Number(q.pageSize || 50)
-    });
-    res.json(result);
+    try {
+      const q = req.query;
+      const result = await storage.searchFonts({
+          q: q.q as string,
+          categoryId: q.categoryId as string,
+          collectionId: q.collectionId as string,
+          favorites: q.favorites === 'true',
+          types: q.types ? (q.types as string).split(',') : undefined,
+          italic: q.italic === 'true',
+          weightMin: q.weightMin ? Number(q.weightMin) : undefined,
+          weightMax: q.weightMax ? Number(q.weightMax) : undefined,
+          sort: q.sort as string,
+          limit: Number(q.pageSize || 50),
+          offset: (Number(q.page || 1) - 1) * Number(q.pageSize || 50)
+      });
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error in GET /api/fonts:", err);
+      res.status(500).json({ message: err.message || "Failed to search fonts" });
+    }
   });
 
   app.get("/api/fonts/:family", async (req, res) => {
-    const result = await storage.getFontFamily(req.params.family);
-    if (!result) return res.status(404).json({ message: "Not found" });
-    res.json(result);
+    try {
+      const result = await storage.getFontFamily(req.params.family);
+      if (!result) return res.status(404).json({ message: "Not found" });
+      res.json(result);
+    } catch (err: any) {
+      console.error("Error in GET /api/fonts/:family:", err);
+      res.status(500).json({ message: err.message || "Failed to get font family" });
+    }
   });
 
   app.post("/api/rescan", async (req, res) => {

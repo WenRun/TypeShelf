@@ -124,16 +124,28 @@ export class Scanner {
 
         // Create Faces
         for (const f of fonts) {
+            const cleanStr = (val?: any): string | undefined => {
+                if (!val) return undefined;
+                const str = String(val).replace(/\0/g, '').trim();
+                return str.length > 0 ? str : undefined;
+            };
+
+            const fallbackName = path.parse(fullPath).name || "Unknown Font";
+            const familyName = cleanStr(f.familyName) || cleanStr(f.fullName) || fallbackName;
+            const subfamilyName = cleanStr(f.subfamilyName) || "Regular";
+            const fullName = cleanStr(f.fullName) || familyName;
+            const postscriptName = cleanStr(f.postscriptName) || familyName.replace(/[^a-zA-Z0-9-]/g, '');
+
             const face: InsertFontFace = {
                 fontFileId: createdFile.id,
-                family: f.familyName,
-                subfamily: f.subfamilyName,
-                postscriptName: f.postscriptName,
+                family: familyName,
+                subfamily: subfamilyName,
+                postscriptName: postscriptName,
                 weight: f['usWeightClass'] || 400,
                 italic: f['italicAngle'] !== 0,
                 stretch: f['usWidthClass']?.toString(),
-                version: f.version ? String(f.version) : undefined,
-                fullName: f.fullName
+                version: cleanStr(f.version ? String(f.version) : undefined),
+                fullName: fullName
             };
             await storage.createFontFace(face);
         }
