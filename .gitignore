@@ -6,5 +6,8 @@ dist
 .env.*
 *.log
 .DS_Store
-README.md
 docker-run.md
+
+# Local runtime data & fonts storage
+data/
+fonts/
