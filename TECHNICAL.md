@@ -456,6 +456,70 @@ TypeShelf/
 
 ---
 
+### Q13: 字体详情页收藏按钮点击后颜色状态未变，且已收藏字体进入详情页显示为空白按钮？
+**答**：
+- **故障现象**：
+  1. 在字体详情页面点击“收藏”按钮，虽然弹出“已更新收藏状态”的通知，但按钮上的爱心依然是空白描边，颜色状态没有改变；
+  2. 在首页已经点击过收藏的字体，点击卡片进入详情页后，顶部仍然显示空白未收藏的“收藏”按钮。
+- **根因分析**：
+  1. **后端详情接口缺失状态组装**：在 `server/storage.ts` 的 `getFontFamily(family)` 方法中，返回的对象为 `{ family, faces, collections, tags, aiMeta }`，未将内存与本地 JSON 中存储的 `favorites` 数据进行关联，导致 `GET /api/fonts/:family` 接口返回的 `isFavorite` 始终为 `undefined`；
+  2. **前端缓存未能毫秒级响应**：`useToggleFavorite` 仅做了列表查询失效，未即时调用 `queryClient.setQueryData` 更新当前字体详情缓存；
+  3. **UI 视觉反馈不醒目**：原爱心仅使用 `fill-current`，在普通 Outline 按钮下填充的是文字前景色（深灰或浅灰），没有如用户所期望的代表心动的鲜明色彩（玫瑰红/红色高亮）。
+- **解决方案**：
+  1. **完善数据仓储**：在 `server/storage.ts` 的 `getFontFamily` 中补充收藏判断：
+     ```typescript
+     const isFavorite = this.favorites.some(
+       f => f.targetType === 'family' && f.targetId === family
+     );
+     return { family, faces, collections, tags, aiMeta, isFavorite };
+     ```
+  2. **毫秒级缓存响应**：在 `client/src/hooks/use-fonts.ts` 的 `useToggleFavorite` 中，`onSuccess` 立即对 `["/api/fonts", "detail", family]` 写入最新状态并失效相关查询；
+  3. **视觉设计升级**：在 `FontDetail.tsx` 与 `FontCard.tsx` 中，统一采用醒目的玫瑰红色调：
+     - 已收藏状态：心形图标填充 `fill-rose-500 text-rose-500 scale-110`，按钮伴随 `border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400` 的温润浅色背景；
+     - 未收藏状态：保持优雅的柔和描边，点击即可瞬时切换。
+
+---
+
+### Q14: 首页标签栏置顶双行滑动与统计标题固钉（Sticky/Fixed）布局架构
+**答**：
+- **设计需求**：
+  1. **标签栏置顶**：将首页标签筛选胶囊从内容流内部移至搜索栏正下方（Header 下第一顺位），与全局检索形成更自然的自上而下“全局检索 -> 维度筛选 -> 结果浏览”漏斗交互；
+  2. **双行网格与横向滑动**：标签胶囊排列改为两行（Two-row Grid）紧凑展示；标签数量较少时自适应展示，当标签数量较多超出屏幕宽度时，自动启用优雅的横向滚动条，并支持鼠标滚轮横向滑动（Wheel-to-horizontal-scroll）；
+  3. **标题与统计栏固钉 (Fixed/Sticky)**：标题与“共找到 xx 款字体家族...”统计栏固定在顶部，不再随字体卡片瀑布流下滑而消失，让用户随时掌握当前筛选范围下的字体总量。
+- **技术实现核心**：
+  1. **Flex 垂直流分层解耦**：在 `client/src/pages/Home.tsx` 中将主区域重构为三个互不干扰的层级：
+     - Layer 1 (Header): 顶部搜索与全局工具栏 (高度固定 h-16, shrink-0, z-20)；
+     - Layer 2 (Fixed Bar): 置顶固钉区，集成双行标签滑动条与统计信息栏 (shrink-0, border-b, backdrop-blur-sm, z-10)；
+     - Layer 3 (Scrollable Content): 独立纵向滚动区 (flex-1, overflow-y-auto)，承载字体卡片网格与无限滚动探测器，滚动时上层内容完全纹丝不动。
+  2. **CSS Grid 双行横向流**：使用 `grid-rows-2 grid-flow-col auto-cols-max`，让胶囊先从上至下填满 2 行，随后沿横向平铺递增，兼顾了页面垂直空间的节省与标签的浏览密度。
+  3. **鼠标滚轮横向映射**：监听容器 `onWheel` 事件，在垂直 deltaY 滚动且存在横向可滚溢出时，平滑折算为 `scrollLeft` 偏移，大幅提升桌面端鼠标滚轮浏览体验。
+
+---
+
+### Q15: 标签多选筛选（交集模式 / AND）与 URL 状态持久化架构
+**答**：
+- **设计需求**：
+  1. **多选标签实时交集过滤（AND / 同时满足）**：用户在首页快速标签栏中可以点击多个标签进行组合筛选，仅展示**同时具备所有已选标签**的字体家族（例如同时勾选“中文”与“黑体”，只展示既是中文且属于黑体的 2 款字体）；
+  2. **URL 状态双向同步与持久化**：多选标签状态实时写入当前 URL 的 Query 参数（如 `/?tags=id1,id2`），支持浏览器无损刷新、前进/后退历史导航，以及将过滤结果直接复制链接分享给其他协作者；
+  3. **交互反馈与清晰闭环**：
+     - 已选中的标签胶囊呈现高亮主色背景并带有醒目的 `✕` 取消图标；
+     - 标题区动态拼接多选标签名称（如 `黑体 + 中文 共找到 2 款字体家族`），并附带 `[已选 2 个标签 (同时满足)]` 明确提示；
+     - 提供一键 `[清空标签]` 快捷按钮，且左侧边栏的对应标签高亮状态保持同步。
+- **技术实现核心**：
+  1. **服务端集合交集算法 (`server/storage.ts`)**：
+     - `searchFonts` 接收 `tagIds: string[]`（向下兼容单个 `tagId` 参数）；
+     - 遍历目标标签 ID 列表，针对每个标签提取其绑定的所有字体家族名集合 (`Set<string>`)；
+     - 循环执行 `intersectionFamilies` 集合缩减运算，提取出各标签集合的纯数学交集，利用 `forEach` 规避 TypeScript 下 ES5 target 迭代器兼容性限制；
+     - 最终将结果集限定在 `intersectionFamilies` 内，保证了 O(N) 级别的高性能与绝对交集正确性；
+  2. **API 路由智能参数解析 (`server/routes.ts`)**：
+     - 支持逗号分隔字符串 `?tags=id1,id2` 或数组参数 `tagIds`，自动规整与过滤无效值；
+  3. **前端状态控制与 Query 驱动 (`client/src/pages/Home.tsx`)**：
+     - 借助 `wouter` 的 `useSearch()` 监听 URL 查询参数变化；
+     - 点击标签胶囊时执行 Toggle 逻辑：若已选中则移除，未选中则追加；
+     - 标签全部清空时自动还原根路径，刷新和回退历史无需重新查询。
+
+---
+
 ## 五、文档持续维护与演进规划
 
 ### 5.1 增补规范
