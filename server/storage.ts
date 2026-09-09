@@ -1,3 +1,4 @@
+import { cleanFontString } from "./font-utils";
 import * as fs from "fs";
 import * as path from "path";
 import { 
@@ -47,6 +48,7 @@ export interface IStorage {
   getFontFamily(family: string): Promise<any | undefined>;
   deleteFontFile(id: string): Promise<void>;
   deleteFontFileByPath(fullPath: string): Promise<void>;
+  reload(): Promise<void>;
 }
 
 export class JsonStorage implements IStorage {
@@ -66,7 +68,17 @@ export class JsonStorage implements IStorage {
     this.categories = this.readJson(CATEGORIES_FILE, []);
     this.collections = this.readJson(COLLECTIONS_FILE, []);
     this.fontFiles = this.readJson(FONT_FILES_FILE, []);
-    this.fontFaces = this.readJson(FONT_FACES_FILE, []);
+    this.fontFaces = this.readJson(FONT_FACES_FILE, []).map((f: any) => {
+      const family = cleanFontString(f.family) || 'Unknown Font';
+      return {
+        ...f,
+        family,
+        subfamily: cleanFontString(f.subfamily) || 'Regular',
+        fullName: cleanFontString(f.fullName) || family,
+        postscriptName: cleanFontString(f.postscriptName) || null,
+        version: cleanFontString(f.version) || null,
+      };
+    });
     this.favorites = this.readJson(FAVORITES_FILE, []);
     this.collectionItems = this.readJson(COLLECTION_ITEMS_FILE, []);
   }
@@ -78,6 +90,10 @@ export class JsonStorage implements IStorage {
     } catch (e) {
       return fallback;
     }
+  }
+
+  async reload(): Promise<void> {
+    this.load();
   }
 
   private save() {
@@ -261,11 +277,11 @@ export class JsonStorage implements IStorage {
   }
 
   async createFontFace(face: InsertFontFace): Promise<FontFace> {
-    const family = (face.family ? String(face.family).replace(/\0/g, '').trim() : '') || 'Unknown Font';
-    const subfamily = (face.subfamily ? String(face.subfamily).replace(/\0/g, '').trim() : '') || 'Regular';
-    const postscriptName = face.postscriptName ? String(face.postscriptName).replace(/\0/g, '').trim() : null;
-    const fullName = face.fullName ? String(face.fullName).replace(/\0/g, '').trim() : family;
-    const version = face.version ? String(face.version).replace(/\0/g, '').trim() : null;
+    const family = cleanFontString(face.family) || 'Unknown Font';
+    const subfamily = cleanFontString(face.subfamily) || 'Regular';
+    const postscriptName = cleanFontString(face.postscriptName) || null;
+    const fullName = cleanFontString(face.fullName) || family;
+    const version = cleanFontString(face.version) || null;
 
     const created: FontFace = { 
       ...face, 

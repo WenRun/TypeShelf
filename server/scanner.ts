@@ -4,6 +4,7 @@ import * as path from "path";
 import * as fs from "fs";
 import * as crypto from "crypto";
 import * as fontkit from "fontkit";
+import { cleanFontString, isCorruptedFontString, resolveFontFamilyFromBuffer } from "./font-utils";
 import { v4 as uuidv4 } from "uuid";
 
 // Fontkit types are tricky, using any for now
@@ -122,19 +123,31 @@ export class Scanner {
 
         const createdFile = await storage.createFontFile(fontFile);
 
-        // Create Faces
+        // Create Faces with smart name resolution and sanitization
+        let fontIdx = 0;
         for (const f of fonts) {
-            const cleanStr = (val?: any): string | undefined => {
-                if (!val) return undefined;
-                const str = String(val).replace(/\0/g, '').trim();
-                return str.length > 0 ? str : undefined;
-            };
-
             const fallbackName = path.parse(fullPath).name || "Unknown Font";
-            const familyName = cleanStr(f.familyName) || cleanStr(f.fullName) || fallbackName;
-            const subfamilyName = cleanStr(f.subfamilyName) || "Regular";
-            const fullName = cleanStr(f.fullName) || familyName;
-            const postscriptName = cleanStr(f.postscriptName) || familyName.replace(/[^a-zA-Z0-9-]/g, '');
+
+            let familyName: string | undefined;
+            if (!isCorruptedFontString(f.familyName)) {
+                familyName = cleanFontString(f.familyName);
+            }
+            if (!familyName) {
+                familyName = resolveFontFamilyFromBuffer(buffer, fontIdx, fallbackName);
+            }
+
+            const subfamilyName = cleanFontString(f.subfamilyName) || "Regular";
+
+            let fullName: string | undefined;
+            if (!isCorruptedFontString(f.fullName)) {
+                fullName = cleanFontString(f.fullName);
+            }
+            if (!fullName) {
+                fullName = familyName;
+            }
+
+            const rawPostscript = cleanFontString(f.postscriptName);
+            const postscriptName = rawPostscript || familyName.replace(/[^a-zA-Z0-9-]/g, '');
 
             const face: InsertFontFace = {
                 fontFileId: createdFile.id,
@@ -144,10 +157,11 @@ export class Scanner {
                 weight: f['usWeightClass'] || 400,
                 italic: f['italicAngle'] !== 0,
                 stretch: f['usWidthClass']?.toString(),
-                version: cleanStr(f.version ? String(f.version) : undefined),
+                version: cleanFontString(f.version ? String(f.version) : undefined) || undefined,
                 fullName: fullName
             };
             await storage.createFontFace(face);
+            fontIdx++;
         }
 
     } catch (err) {

@@ -122,8 +122,13 @@ export async function registerRoutes(
   });
 
   app.post("/api/rescan", async (req, res) => {
-    scanner.scanAll(); 
+    scanner.scanAll().then(() => storage.reload()); 
     res.json({ message: "Scan started" });
+  });
+
+  app.post("/api/reload", async (req, res) => {
+    await storage.reload();
+    res.json({ message: "Storage reloaded" });
   });
 
   // === Directory Browser ===
