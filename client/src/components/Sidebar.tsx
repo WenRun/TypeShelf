@@ -1,4 +1,4 @@
-import { Link, useLocation, useSearch } from "wouter";
+﻿import { Link, useLocation, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 import { 
   Type, 
@@ -19,8 +19,9 @@ import { Input } from "@/components/ui/input";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-export function Sidebar() {
+export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const [location] = useLocation();
   const searchString = useSearch();
@@ -46,9 +47,9 @@ export function Sidebar() {
   const hasMoreTags = (tags?.length || 0) > 6;
 
   return (
-    <aside className="w-64 h-screen border-r border-border bg-card flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
+    <div className="flex flex-col h-full w-full overflow-y-auto custom-scrollbar">
       <div className="p-6">
-        <Link href="/" className="block">
+        <Link href="/" className="block" onClick={onNavigate}>
           <h1 className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent hover:opacity-90 transition-opacity">
             {t("common.appName")}
           </h1>
@@ -58,8 +59,8 @@ export function Sidebar() {
       <nav className="flex-1 px-4 space-y-8">
         {/* Main Links */}
         <div className="space-y-1">
-          <NavItem href="/" icon={<Type />} label={t("sidebar.allFonts")} active={location === "/"} count={stats?.totalFonts} />
-          <NavItem href="/favorites" icon={<Heart />} label={t("sidebar.favorites")} active={location === "/favorites"} count={stats?.totalFavorites} />
+          <NavItem href="/" icon={<Type />} label={t("sidebar.allFonts")} active={location === "/"} count={stats?.totalFonts} onClick={onNavigate} />
+          <NavItem href="/favorites" icon={<Heart />} label={t("sidebar.favorites")} active={location === "/favorites"} count={stats?.totalFavorites} onClick={onNavigate} />
         </div>
 
         {/* Collections */}
@@ -79,6 +80,7 @@ export function Sidebar() {
                 count={col.count}
                 onDelete={col.id}
                 deleteType="collection"
+                onClick={onNavigate}
               />
             ))}
             {(!collections || collections.length === 0) && (
@@ -101,6 +103,7 @@ export function Sidebar() {
                 label={tag.name}
                 active={location === `/tags/${tag.id}` || queryTagIds.includes(tag.id)}
                 count={tag.count}
+                onClick={onNavigate}
               />
             ))}
             {(!tags || tags.length === 0) && (
@@ -121,9 +124,27 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-border mt-auto">
-        <NavItem href="/settings" icon={<SettingsIcon />} label={t("sidebar.settings")} active={location === "/settings"} />
+        <NavItem href="/settings" icon={<SettingsIcon />} label={t("sidebar.settings")} active={location === "/settings"} onClick={onNavigate} />
       </div>
+    </div>
+  );
+}
+
+export function Sidebar({ className }: { className?: string }) {
+  return (
+    <aside className={cn("hidden md:flex w-64 h-screen border-r border-border bg-card flex-col shrink-0 overflow-y-auto custom-scrollbar", className)}>
+      <SidebarContent />
     </aside>
+  );
+}
+
+export function MobileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-card border-r border-border flex flex-col">
+        <SidebarContent onNavigate={() => onOpenChange(false)} />
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -134,7 +155,8 @@ function NavItem({
   active, 
   count,
   onDelete,
-  deleteType
+  deleteType,
+  onClick
 }: { 
   href: string; 
   icon: React.ReactNode; 
@@ -143,6 +165,7 @@ function NavItem({
   count?: number;
   onDelete?: string;
   deleteType?: "collection";
+  onClick?: () => void;
 }) {
   const { t } = useTranslation();
   const { mutate: deleteCollection } = useDeleteCollection();
@@ -167,7 +190,7 @@ function NavItem({
 
   return (
     <div className="group relative flex items-center">
-      <Link href={href} className={cn(
+      <Link href={href} onClick={onClick} className={cn(
         "flex items-center w-full gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 pr-10",
         active 
           ? "bg-primary/10 text-primary" 
@@ -224,7 +247,7 @@ function CreateCollectionDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="text-muted-foreground hover:text-primary transition-colors" title={t("sidebar.newCollection")}>
+        <button className="text-muted-foreground hover:text-primary transition-colors cursor-pointer" title={t("sidebar.newCollection")}>
           <Plus className="w-4 h-4" />
         </button>
       </DialogTrigger>

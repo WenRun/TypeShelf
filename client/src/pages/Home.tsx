@@ -1,10 +1,10 @@
-import { Sidebar } from "@/components/Sidebar";
+﻿import { Sidebar, MobileSidebar } from "@/components/Sidebar";
 import { FontCard } from "@/components/FontCard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useInfiniteFonts, useRescanFonts } from "@/hooks/use-fonts";
 import { useRemoveFontFromCollection } from "@/hooks/use-collections";
-import { Search, RefreshCw, Loader2, Tag as TagIcon, X } from "lucide-react";
+import { Search, RefreshCw, Loader2, Tag as TagIcon, X, Menu, Type } from "lucide-react";
 import { useTags } from "@/hooks/use-tags";
 import { getTagBadgeStyle } from "@/lib/tag-styles";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ export default function Home() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [customPreview, setCustomPreview] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [location, setLocation] = useLocation();
   const searchString = useSearch();
   const { toast } = useToast();
@@ -146,36 +148,107 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <Sidebar />
+      <MobileSidebar open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
       
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-xl px-8 flex items-center justify-between shrink-0 z-20">
-          <div className="relative w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              className="pl-10 bg-secondary/50 border-transparent focus:bg-background transition-all" 
-              placeholder={t("common.searchPlaceholder")} 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
+        {/* Responsive Header */}
+        <header className="border-b border-border bg-card/50 backdrop-blur-xl px-4 md:px-8 py-2.5 md:py-0 md:h-16 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 md:gap-4 shrink-0 z-20">
+          {/* Mobile Top Row (< md) */}
+          <div className="flex items-center justify-between md:hidden w-full">
             <div className="flex items-center gap-2">
-               <Input 
-                 value={customPreview}
-                 onChange={(e) => setCustomPreview(e.target.value)}
-                 className="w-64 h-9 bg-transparent border-border hover:border-primary/50 focus:border-primary transition-colors text-sm"
-                 placeholder={t("common.previewPlaceholder")}
-               />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(true)}
+                className="h-9 w-9 -ml-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                aria-label="Toggle Navigation Menu"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              <h1 className="text-lg font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                {t("common.appName")}
+              </h1>
             </div>
 
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowMobilePreview(!showMobilePreview)}
+                className={cn("h-8 w-8 relative sm:hidden cursor-pointer", showMobilePreview && "bg-secondary text-primary border-primary/50")}
+                title={t("common.previewPlaceholder")}
+              >
+                <Type className="w-4 h-4" />
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => rescan()}
+                disabled={isRescanPending}
+                className="h-8 w-8 relative cursor-pointer"
+                title={t("home.rescan")}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRescanPending ? "animate-spin" : ""}`} />
+              </Button>
+
+              <ThemeSwitcher variant="icon" />
+              <LanguageSwitcher variant="icon" />
+            </div>
+          </div>
+
+          {/* Search Bar & Desktop Preview Control */}
+          <div className="flex items-center gap-2 w-full md:w-auto flex-1 max-w-2xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                className="pl-9 h-9 bg-secondary/50 border-transparent focus:bg-background transition-all text-sm w-full" 
+                placeholder={t("common.searchPlaceholder")} 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button 
+                  type="button" 
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="hidden sm:flex items-center">
+              <Input 
+                value={customPreview}
+                onChange={(e) => setCustomPreview(e.target.value)}
+                className="w-44 lg:w-64 h-9 bg-transparent border-border hover:border-primary/50 focus:border-primary transition-colors text-sm"
+                placeholder={t("common.previewPlaceholder")}
+              />
+            </div>
+          </div>
+
+          {/* Mobile Expandable Preview Input */}
+          {showMobilePreview && (
+            <div className="w-full sm:hidden pt-0.5 pb-1">
+              <Input 
+                value={customPreview}
+                onChange={(e) => setCustomPreview(e.target.value)}
+                className="w-full h-8 bg-secondary/40 border-border text-xs"
+                placeholder={t("common.previewPlaceholder")}
+                autoFocus
+              />
+            </div>
+          )}
+
+          {/* Desktop Actions (>= md) */}
+          <div className="hidden md:flex items-center gap-3">
             <Button 
               variant="outline" 
               size="icon"
               onClick={() => rescan()}
               disabled={isRescanPending}
-              className="relative"
+              className="relative h-9 w-9 cursor-pointer"
               title={t("home.rescan")}
             >
               <RefreshCw className={`w-4 h-4 ${isRescanPending ? "animate-spin" : ""}`} />
@@ -187,11 +260,12 @@ export default function Home() {
         </header>
 
         {/* Fixed Top Section: Two-row Tag Slider + Title & Count */}
-        <div className="shrink-0 px-8 pt-3.5 pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm z-10 space-y-3">
-          {/* Quick Tag Filter Bar: Two rows display, horizontally scrollable when overflowing */}
+        <div className="shrink-0 px-4 md:px-8 pt-3 pb-2.5 md:pt-3.5 md:pb-3 border-b border-border/60 bg-background/95 backdrop-blur-sm z-10 space-y-2.5 md:space-y-3">
+          {/* Quick Tag Filter Bar */}
           {tags && tags.length > 0 && (
             <div 
-              className="grid grid-rows-2 grid-flow-col auto-cols-max gap-2 overflow-x-auto pb-1.5 custom-scrollbar"
+              className="grid grid-rows-2 grid-flow-col auto-cols-max gap-1.5 md:gap-2 overflow-x-auto pb-1 custom-scrollbar touch-pan-x"
+              style={{ WebkitOverflowScrolling: "touch" }}
               onWheel={(e) => {
                 if (e.deltaY !== 0 && e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
                   e.currentTarget.scrollLeft += e.deltaY;
@@ -202,7 +276,7 @@ export default function Home() {
                 type="button"
                 onClick={handleClearTags}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer border h-7 justify-center",
+                  "inline-flex items-center gap-1.5 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer border h-6.5 md:h-7 justify-center",
                   selectedTagIds.length === 0
                     ? "bg-primary text-primary-foreground border-primary shadow-xs"
                     : "bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground border-transparent"
@@ -218,7 +292,7 @@ export default function Home() {
                     type="button"
                     onClick={() => handleTagToggle(tItem.id)}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer border h-7 justify-center select-none",
+                      "inline-flex items-center gap-1.5 px-2.5 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer border h-6.5 md:h-7 justify-center select-none",
                       isActive
                         ? "bg-primary text-primary-foreground border-primary shadow-xs ring-1 ring-primary/30"
                         : cn("bg-secondary/40 hover:bg-secondary/80 text-foreground border-border/40", getTagBadgeStyle(tItem.color))
@@ -239,21 +313,23 @@ export default function Home() {
           )}
 
           {/* Fixed Title & Count */}
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-xl font-medium text-foreground">
-                {isFavorites ? t("home.favoritesTitle") : 
-                 collectionMatch ? t("home.collectionTitle") : 
-                 selectedTags.length > 0 ? (
-                   selectedTags.length <= 3 
-                     ? selectedTags.map(t => t.name).join(" + ")
-                     : `${t("home.tagFontsTitle")} (${selectedTags.length})`
-                 ) :
-                 t("home.allFontsTitle")}
-                <span className="ml-3 text-sm text-muted-foreground font-normal">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <h2 className="text-lg md:text-xl font-medium text-foreground flex items-baseline flex-wrap gap-2">
+                <span>
+                  {isFavorites ? t("home.favoritesTitle") : 
+                   collectionMatch ? t("home.collectionTitle") : 
+                   selectedTags.length > 0 ? (
+                     selectedTags.length <= 3 
+                       ? selectedTags.map(t => t.name).join(" + ")
+                       : `${t("home.tagFontsTitle")} (${selectedTags.length})`
+                   ) :
+                   t("home.allFontsTitle")}
+                </span>
+                <span className="text-xs md:text-sm text-muted-foreground font-normal">
                   {t("home.familiesFound", { count: totalCount })}
                   {allFonts.length > 0 && totalCount > allFonts.length && (
-                    <span className="ml-1 text-xs opacity-75">
+                    <span className="ml-1 text-[11px] md:text-xs opacity-75">
                       ({t("home.loadedCount", { loaded: allFonts.length, total: totalCount })})
                     </span>
                   )}
@@ -262,8 +338,8 @@ export default function Home() {
 
               {/* Multi-tag intersection hint badge & clear button */}
               {selectedTags.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-primary/10 text-primary border border-primary/20 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] md:text-[11px] bg-primary/10 text-primary border border-primary/20 font-medium">
                     {t("home.multiTagsSelected", { count: selectedTags.length })}
                   </span>
                   <button
@@ -279,12 +355,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Scrollable Content Area: Only cards and infinite loader scroll */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6 custom-scrollbar">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-[280px] rounded-2xl bg-card animate-pulse border border-border/50" />
+                <div key={i} className="h-[250px] sm:h-[280px] rounded-2xl bg-card animate-pulse border border-border/50" />
               ))}
             </div>
           ) : allFonts.length === 0 ? (
@@ -299,7 +375,7 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                 {allFonts.map((item: any) => (
                   <FontCard 
                     key={item.family}
@@ -326,7 +402,7 @@ export default function Home() {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => fetchNextPage()}
-                      className="text-xs text-muted-foreground hover:text-foreground"
+                      className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                     >
                       {t("home.loadMore")}
                     </Button>

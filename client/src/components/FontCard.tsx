@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+﻿import { Link, useLocation } from "wouter";
 import { getTagBadgeStyle } from "@/lib/tag-styles";
 import { type FontFace, type FontFile } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,7 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     toggleFavorite({ targetType: "family", targetId: family });
   };
 
@@ -100,29 +101,29 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
   return (
     <Link href={`/fonts/${encodeURIComponent(family)}`} className="block group">
       <div className="
-        bg-card h-[280px] rounded-2xl p-6 border border-border/50
+        bg-card min-h-[240px] sm:h-[280px] rounded-2xl p-4 sm:p-6 border border-border/50
         shadow-sm group-hover:shadow-xl group-hover:border-primary/50 group-hover:-translate-y-1
         transition-all duration-300 ease-out relative flex flex-col
       ">
         {/* Actions overlay - Top Right */}
-        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+        <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex gap-1.5 sm:gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10">
           {onDeleteFromCollection ? (
             <button 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteFromCollection(); }}
-              className="p-2 rounded-lg bg-background/80 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground backdrop-blur-md border border-border/40 transition-colors shadow-sm"
+              className="p-1.5 sm:p-2 rounded-lg bg-background/80 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground backdrop-blur-md border border-border/40 transition-colors shadow-sm cursor-pointer"
               title={t("fontCard.removeFromCollection")}
             >
-              <Plus className="w-4 h-4 rotate-45" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-45" />
             </button>
           ) : (
             <DropdownMenu open={open} onOpenChange={setOpen}>
               <DropdownMenuTrigger asChild>
                 <button 
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  className="p-2 rounded-lg bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground backdrop-blur-md border border-border/40 transition-colors shadow-sm"
+                  className="p-1.5 sm:p-2 rounded-lg bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground backdrop-blur-md border border-border/40 transition-colors shadow-sm cursor-pointer"
                   title={t("fontCard.addToCollection", { name: "" }).trim()}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -141,29 +142,29 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
           <button 
             onClick={handleToggleFavorite}
             className={cn(
-              "p-2 rounded-lg backdrop-blur-md transition-colors",
+              "p-1.5 sm:p-2 rounded-lg backdrop-blur-md transition-colors cursor-pointer",
               isFavorite 
                 ? "bg-rose-500/15 text-rose-500 hover:bg-rose-500/25" 
                 : "bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border/40 shadow-sm"
             )}
             title={isFavorite ? t("fontCard.favorited") : t("fontCard.favorite")}
           >
-            <Heart className={cn("w-4 h-4", isFavorite ? "fill-rose-500 text-rose-500" : "fill-transparent text-muted-foreground")} />
+            <Heart className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isFavorite ? "fill-rose-500 text-rose-500" : "fill-transparent text-muted-foreground")} />
           </button>
         </div>
 
-        {/* Favorite indicator always visible if favorite */}
+        {/* Favorite indicator visible on desktop when favorite and not hover */}
         {isFavorite && (
-          <div className="absolute top-4 right-4 opacity-100 group-hover:opacity-0 transition-opacity duration-200">
+          <div className="hidden sm:block absolute top-4 right-4 opacity-100 group-hover:opacity-0 transition-opacity duration-200">
              <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
           </div>
         )}
 
         {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="min-w-0 flex-1 mr-8">
-            <h3 className="font-semibold text-lg text-foreground tracking-tight truncate" title={family}>{family}</h3>
-            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        <div className="flex justify-between items-start mb-3 sm:mb-4">
+          <div className="min-w-0 flex-1 mr-16 sm:mr-20">
+            <h3 className="font-semibold text-base sm:text-lg text-foreground tracking-tight truncate" title={family}>{family}</h3>
+            <div className="flex items-center gap-1.5 mt-1 sm:mt-1.5 flex-wrap">
               <span className="text-xs text-muted-foreground mr-0.5">
                 {t("fontCard.stylesCount", { count: faces.length })}
               </span>
@@ -195,9 +196,9 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
         </div>
 
         {/* Preview Area */}
-        <div className="flex-1 flex items-center justify-center overflow-hidden">
+        <div className="flex-1 flex items-center justify-center overflow-hidden py-2">
           <p 
-            className="text-3xl text-center text-foreground/90 break-words w-full line-clamp-3"
+            className="text-2xl sm:text-3xl text-center text-foreground/90 break-words w-full line-clamp-3"
             style={{ fontFamily: `'${fontStyleId}', sans-serif` }}
           >
             {displayText}
@@ -205,8 +206,8 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
         </div>
 
         {/* Footer */}
-        <div className="mt-6 flex items-center justify-between gap-3 min-w-0">
-          <div className="flex items-center gap-1.5 shrink-0">
+        <div className="mt-4 sm:mt-6 flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {Array.from(new Set(faces.map(f => f.file?.ext ? f.file.ext.toUpperCase() : ""))).filter(Boolean).map(ext => (
                <span key={ext} className="text-[10px] font-mono font-medium bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground/70">
                  {ext}
@@ -216,10 +217,10 @@ export function FontCard({ family, faces, previewText, isFavorite, onDeleteFromC
 
           {displayFileName && (
             <div 
-              className="flex items-center gap-1 min-w-0 max-w-[65%] text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors font-mono"
+              className="flex items-center gap-1 min-w-0 max-w-[65%] text-[11px] sm:text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors font-mono"
               title={fullFileNamesTooltip}
             >
-              <FileText className="w-3.5 h-3.5 shrink-0 opacity-60" />
+              <FileText className="w-3 sm:w-3.5 h-3 sm:h-3.5 shrink-0 opacity-60" />
               <span className="truncate">{displayFileName}</span>
             </div>
           )}
